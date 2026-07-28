@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ハツミル - 相性で出会う</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0F1A;
+    --bg-soft: #10162A;
+    --glass: rgba(255,255,255,0.055);
+    --glass-strong: rgba(255,255,255,0.09);
+    --border: rgba(255,255,255,0.11);
+    --aqua: #6EE7D8;
+    --aqua-dim: rgba(110,231,216,0.35);
+    --coral: #FF93A8;
+    --coral-dim: rgba(255,147,168,0.35);
+    --text: #F2F5FA;
+    --muted: #8B96AC;
+    --muted-dim: #5B647A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 800px 500px at 20% -10%, rgba(110,231,216,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 90% 10%, rgba(255,147,168,0.07), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+  }
+  .head-font{ font-family: 'Zen Kaku Gothic New', sans-serif; }
+  .mono{ font-family: 'JetBrains Mono', monospace; }
+
+  .phone{
+    width: 100%;
+    max-width: 430px;
+    background: linear-gradient(180deg, #0D1220 0%, #0A0E18 100%);
+    border-radius: 34px;
+    border: 1px solid var(--border);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.02);
+    overflow: hidden;
+    position: relative;
+    min-height: 800px;
+  }
+  .statusbar{ height:14px; }
+
+  header.top{
+    padding: 18px 20px 6px;
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .logo{
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-weight:900; font-size:20px; letter-spacing:0.02em;
+    background: linear-gradient(90deg, var(--aqua), var(--coral));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .tagline{
+    font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.01em;
+  }
+  .cp-badge{
+    font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;
+    background:var(--glass); border:1px solid var(--border); padding:6px 10px; border-radius:100px;
+  }
+  .cp-badge b{ color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:500; }
+
+  main{ padding: 4px 20px 100px; overflow-y:auto; height: 760px; scrollbar-width:none; }
+  main::-webkit-scrollbar{ display:none; }
+
+  .section-label{
+    font-size:11px; letter-spacing:0.14em; color: var(--muted-dim);
+    text-transform:uppercase; margin: 22px 0 10px 2px; font-weight:600;
+  }
+  .section-title{
+    font-family:'Zen Kaku Gothic New', sans-serif; font-weight:700; font-size:17px;
+    margin-bottom:2px; display:flex; align-items:center; gap:8px;
+  }
+  .section-sub{ font-size:12px; color:var(--muted); margin-bottom:12px; }
+
+  .hero-title{
+    font-family:'Zen Kaku Gothic New', sans-serif; font-weight:900; font-size:21px;
+    display:flex; align-items:center; gap:9px; margin-bottom:2px;
+    background: linear-gradient(90deg, var(--text), var(--coral) 120%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .pulse-dot{
+    width:9px; height:9px; border-radius:100%; background: var(--coral); flex-shrink:0;
+    box-shadow: 0 0 0 0 rgba(255,147,168,0.6);
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(255,147,168,0.55); }
+    70%{ box-shadow: 0 0 0 8px rgba(255,147,168,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(255,147,168,0); }
+  }
+  .milestone-card.featured{
+    min-width: 230px; max-width:230px;
+    border-color: rgba(255,147,168,0.4);
+    background: linear-gradient(160deg, rgba(255,147,168,0.10), var(--glass));
+  }
+
+  /* 今日のはじめて フィード */
+  .milestone-scroll{
+    display:flex; gap:12px; overflow-x:auto; padding: 4px 0 10px; scrollbar-width:none;
+    margin: 0 -20px; padding-left:20px; padding-right:20px;
+  }
+  .milestone-scroll::-webkit-scrollbar{ display:none; }
+  .milestone-card{
+    min-width: 200px; max-width:200px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    backdrop-filter: blur(14px);
+    flex-shrink:0;
+    position:relative;
+  }
+  .milestone-tag{
+    display:inline-block; font-size:10px; padding:3px 8px; border-radius:100px;
+    background: var(--coral-dim); color:#FFD7DF; margin-bottom:9px; font-weight:600;
+  }
+  .milestone-card .name{ font-weight:700; font-size:13.5px; margin-bottom:3px; }
+  .milestone-card .desc{ font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:10px; min-height:34px; }
+  .cheer-row{ display:flex; flex-wrap:wrap; gap:5px; }
+  .cheer-btn{
+    font-size:11px; padding:5px 8px; border-radius:100px; border:1px solid var(--border);
+    background: rgba(255,255,255,0.03); color: var(--text); cursor:pointer;
+    transition: all .15s ease; white-space:nowrap;
+  }
+  .cheer-btn:hover{ background: var(--coral-dim); border-color: var(--coral); transform: translateY(-1px); }
+  .cheer-btn.sent{ background: var(--coral-dim); border-color: var(--coral); opacity:0.7; pointer-events:none; }
+  .cheer-count{ font-size:10.5px; color:var(--muted-dim); margin-top:6px; font-family:'JetBrains Mono',monospace; }
+
+  /* 検索 */
+  .search-bar{
+    display:flex; align-items:center; gap:8px;
+    background: var(--glass); border:1px solid var(--border); border-radius:14px;
+    padding: 12px 14px; margin-bottom:12px;
+  }
+  .search-bar input{
+    background:none; border:none; outline:none; color:var(--text); font-size:14px; width:100%;
+    font-family:'Noto Sans JP',sans-serif;
+  }
+  .search-bar input::placeholder{ color: var(--muted-dim); }
+  .filter-row{ display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; scrollbar-width:none; }
+  .filter-row::-webkit-scrollbar{ display:none; }
+  .chip{
+    font-size:12px; padding:7px 13px; border-radius:100px; border:1px solid var(--border);
+    background: rgba(255,255,255,0.03); white-space:nowrap; cursor:pointer; color:var(--muted); transition:.15s;
+  }
+  .chip.active{ background: var(--aqua-dim); border-color: var(--aqua); color:#DFFFFA; }
+
+  /* 活動者カード */
+  .creator-card{
+    background: var(--glass); border:1px solid var(--border); border-radius:18px;
+    padding: 14px; margin-bottom:10px; display:flex; gap:12px; cursor:pointer; transition:.15s;
+  }
+  .creator-card:hover{ border-color: var(--aqua-dim); }
+  .avatar{
+    width:52px; height:52px; border-radius:100%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700;
+    color: rgba(10,14,24,0.85);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    border: 1px solid rgba(255,255,255,0.18);
+  }
+  .creator-info{ flex:1; min-width:0; }
+  .creator-info .name{ font-weight:700; font-size:14.5px; }
+  .creator-info .genre{ font-size:11.5px; color:var(--muted); margin: 2px 0 6px; }
+  .phase-badge{
+    display:inline-block; font-size:10px; padding:2px 8px; border-radius:100px;
+    background: rgba(110,231,216,0.14); color: var(--aqua); font-weight:600; margin-right:6px;
+  }
+  .reason-line{
+    font-size:11px; color: #FFD7DF; margin-top:6px; display:flex; align-items:center; gap:4px;
+  }
+
+  /* プロフィール(モーダル) */
+  .modal-overlay{
+    position:absolute; inset:0; background: rgba(6,8,14,0.72); backdrop-filter: blur(4px);
+    display:none; align-items:flex-end; z-index:50;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    width:100%; max-height:88%; overflow-y:auto; background: var(--bg-soft);
+    border-radius: 26px 26px 0 0; border: 1px solid var(--border); border-bottom:none;
+    padding: 10px 20px 40px; animation: slideup .25s ease;
+    scrollbar-width:none;
+  }
+  .modal::-webkit-scrollbar{ display:none; }
+  @keyframes slideup{ from{ transform: translateY(30px); opacity:0; } to{ transform: translateY(0); opacity:1; } }
+  .modal-handle{ width:36px; height:4px; background: var(--border); border-radius:100px; margin: 8px auto 16px; }
+  .modal-close{
+    position:absolute; top:14px; right:20px; width:30px; height:30px; border-radius:100px;
+    background: var(--glass); border:1px solid var(--border); color:var(--muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;
+  }
+  .profile-header{ display:flex; gap:14px; align-items:center; margin-bottom:6px; }
+  .profile-header .avatar{ width:64px; height:64px; font-size:26px; }
+  .profile-header .name{ font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:19px; }
+  .profile-header .genre{ font-size:12.5px; color:var(--muted); margin-top:3px; }
+
+  .growth-line{
+    font-size: 11.5px; color: var(--aqua); margin-top: 8px; font-family:'JetBrains Mono',monospace;
+  }
+  .reason-box{
+    margin: 14px 0; padding: 12px 14px; border-radius:14px;
+    background: linear-gradient(120deg, rgba(255,147,168,0.10), rgba(110,231,216,0.08));
+    border: 1px solid rgba(255,147,168,0.25);
+    font-size:12.5px; color:#FFE3E9; display:flex; gap:8px; align-items:flex-start;
+  }
+
+  .radar-wrap{
+    display:flex; justify-content:center; margin: 14px 0 6px;
+    background: radial-gradient(ellipse at center, rgba(110,231,216,0.06), transparent 70%);
+    border-radius: 20px; padding: 10px 0;
+  }
+
+  .bio{ font-size:13px; color:var(--muted); line-height:1.7; margin: 6px 0 4px; }
+
+  .timeline{ margin-top: 6px; }
+  .tl-item{
+    display:flex; gap:12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .tl-dot{
+    width:8px; height:8px; border-radius:100px; background: var(--coral); margin-top:6px; flex-shrink:0;
+    box-shadow: 0 0 8px var(--coral);
+  }
+  .tl-content .tl-title{ font-weight:700; font-size:13.5px; }
+  .tl-content .tl-date{ font-size:10.5px; color:var(--muted-dim); font-family:'JetBrains Mono',monospace; margin-bottom:4px; }
+  .tl-content .tl-desc{ font-size:12.5px; color:var(--muted); margin-bottom:8px; }
+
+  .go-btn{
+    display:flex; flex-direction:column; align-items:center; gap:2px; width:100%; margin-top: 22px;
+    padding: 20px; border-radius: 24px; border:none; cursor:pointer;
+    background: linear-gradient(120deg, var(--aqua) 0%, var(--coral) 100%);
+    box-shadow: 0 8px 30px rgba(110,231,216,0.28);
+    color:#0A1420; font-weight:900; font-size:16px;
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    transition: transform .15s ease;
+  }
+  .go-btn:active{ transform: scale(0.98); }
+  .go-btn .go-sub{ font-size:11px; font-weight:500; opacity:0.75; }
+  .save-btn{
+    display:block; width:100%; text-align:center; margin-top: 10px;
+    padding: 13px; border-radius: 100px; cursor:pointer;
+    background: transparent; color: var(--muted); font-size:13px; border:1px solid var(--border);
+  }
+
+  /* ボトムナビ */
+  nav.bottom{
+    position:absolute; bottom:0; left:0; right:0;
+    background: rgba(13,18,32,0.85); backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display:flex; padding: 10px 24px 18px;
+  }
+  .nav-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    color: var(--muted-dim); font-size:10.5px; cursor:pointer; transition:.15s;
+  }
+  .nav-item.active{ color: var(--aqua); }
+  .nav-icon{ font-size:19px; }
+
+  .empty-note{ font-size:12px; color:var(--muted-dim); text-align:center; padding:24px 0; }
+
+  .mypage-card{
+    background: var(--glass); border:1px solid var(--border); border-radius:18px;
+    padding: 16px; margin-bottom:12px;
+  }
+  .mypage-card-title{ font-weight:700; font-size:14px; margin-bottom:6px; }
+  .mypage-card-desc{ font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:12px; }
+  .back-link{
+    font-size:12px; color: var(--muted); cursor:pointer; margin: 10px 0 4px; display:inline-flex; align-items:center; gap:4px;
+  }
+  .back-link:hover{ color: var(--aqua); }
+
+  .form-block{ margin-bottom: 18px; }
+  .form-label{ font-size:12.5px; color: var(--text); font-weight:600; display:block; margin-bottom:8px; }
+  .form-input{
+    width:100%; background: var(--glass); border:1px solid var(--border); border-radius:12px;
+    padding: 12px 14px; color: var(--text); font-size:13.5px; font-family:'Noto Sans JP',sans-serif;
+    outline:none; resize:vertical;
+  }
+  .form-input:focus{ border-color: var(--aqua-dim); }
+  .form-input::placeholder{ color: var(--muted-dim); }
+  .slider-row{ margin-bottom: 14px; }
+  .slider-label{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .slider-label span:last-child{ color: var(--aqua); }
+  .slider{
+    width:100%; accent-color: var(--aqua); height: 4px; cursor:pointer;
+  }
+
+  .toast{
+    position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+    background: var(--glass-strong); border:1px solid var(--border);
+    padding: 10px 18px; border-radius:100px; font-size:12.5px;
+    backdrop-filter: blur(12px); opacity:0; pointer-events:none; transition: opacity .25s, transform .25s;
+    white-space:nowrap; z-index:60;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="statusbar"></div>
+  <header class="top">
+    <div>
+      <div class="logo">ハツミル</div>
+      <div class="tagline">頑張る人が、見つかる場所。</div>
+    </div>
+    <div class="cp-badge">🌸 <b id="cpTotal">128</b> おめでとう</div>
+  </header>
+
+  <main id="mainView"></main>
+
+  <nav class="bottom">
+    <div class="nav-item active" data-tab="home"><span class="nav-icon">✨</span>ホーム</div>
+    <div class="nav-item" data-tab="search"><span class="nav-icon">🔍</span>検索</div>
+    <div class="nav-item" data-tab="saved"><span class="nav-icon">🔖</span>あとで見る</div>
+    <div class="nav-item" data-tab="mypage"><span class="nav-icon">👤</span>マイページ</div>
+  </nav>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+/* ------------------------------------------------------
+   Supabase接続設定
+   ------------------------------------------------------
+   1. Supabaseでプロジェクトを作成
+   2. SQL Editorで supabase-schema.sql を実行
+   3. Project Settings → API から URL と anon public key を取得し、下の2行に貼り付ける
+   未設定の間は自動的にモックデータで動作します（デモ用）
+------------------------------------------------------ */
+const SUPABASE_URL = "";       // 例: https://xxxxxxxx.supabase.co
+const SUPABASE_ANON_KEY = "";  // 例: eyJhbGciOi...
+const sbClient = (SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+if (!sbClient){
+  console.warn("[ハツミル] Supabase未設定のため、モックデータで動作しています。SUPABASE_URL / SUPABASE_ANON_KEY を設定すると実データに接続します。");
+}
+/* ------------------------------------------------------
+   ハツミル MVP プロトタイプ（モックデータ / フロントのみ）
+   Supabase移行を見据え、データ構造はテーブル設計と対応させている
+------------------------------------------------------ */
+
+// ジャンルごとにレーダーチャートの軸を可変にする（固定しない）
+const GENRE_AXES = {
+  "VTuber":   ["雑談", "ゲーム", "癒し", "初見歓迎"],
+  "歌い手":   ["歌唱力", "表現力", "バラード", "オリジナル曲"],
+  "配信者":   ["企画力", "トーク", "ゲーム性", "コメント重視"],
+};
+
+const CHEER_OPTIONS = [
+  { emoji: "🌸", label: "初配信おめでとう" },
+  { emoji: "🎉", label: "初コラボおめでとう" },
+  { emoji: "👏", label: "がんばれ" },
+  { emoji: "🎵", label: "オリジナル曲おめでとう" },
+];
+
+const MOCK_CREATORS = [
+  {
+    id: "c1", name: "つきのわ みお", genre: "VTuber", phase: "初配信済み",
+    bio: "夜に雑談配信をしている新人VTuberです。初見さん大歓迎、ゆるく話すのが得意です。",
+    radar: { "雑談": 4.5, "ゲーム": 2.5, "癒し": 4, "初見歓迎": 5 },
+    milestones: [
+      { id:"m1", title:"初配信をしました", date:"2026-07-25", desc:"緊張したけど楽しかった…！また来てね", cheers:{"🌸":9,"🎉":2,"👏":4,"🎵":0} },
+      { id:"m2", title:"プロフィール登録", date:"2026-07-20", desc:"はじめまして、みおです。", cheers:{"🌸":3,"🎉":0,"👏":1,"🎵":0} },
+    ]
+  },
+  {
+    id: "c2", name: "灯 かなで", genre: "歌い手", phase: "活動継続中",
+    bio: "バラードを中心に歌っています。人生をテーマにした「もがいて生きる歌」が好きです。",
+    radar: { "歌唱力":4, "表現力":4.5, "バラード":5, "オリジナル曲":3 },
+    milestones: [
+      { id:"m3", title:"初オリジナル曲を公開しました", date:"2026-07-22", desc:"「夢海月」という曲です。聴いてもらえたら嬉しいです。", cheers:{"🌸":1,"🎉":1,"👏":2,"🎵":12} },
+    ]
+  },
+  {
+    id: "c3", name: "しろくろ げーむす", genre: "配信者", phase: "初配信済み",
+    bio: "ホラーゲーム実況が中心。企画配信もたまにやります。",
+    radar: { "企画力":3.5, "トーク":3, "ゲーム性":4.5, "コメント重視":4 },
+    milestones: [
+      { id:"m4", title:"初ホラーゲーム実況", date:"2026-07-26", desc:"叫びすぎて声がれました", cheers:{"🌸":6,"🎉":0,"👏":3,"🎵":0} },
+    ]
+  },
+  {
+    id: "c4", name: "ぴかちゅー", genre: "VTuber", phase: "活動継続中",
+    bio: "元気いっぱいの雑談＆企画配信。初見さんへの絡みが得意です。",
+    radar: { "雑談":4, "ゲーム":3, "癒し":3, "初見歓迎":5 },
+    milestones: [
+      { id:"m5", title:"視聴者参加型企画を初開催", date:"2026-07-24", desc:"みんなで遊べて楽しかった！", cheers:{"🌸":2,"🎉":7,"👏":5,"🎵":0} },
+    ]
+  },
+];
+
+// ジャンルに応じた「初心者向けプリセット」（選ぶだけでレーダーの初期値が入る）
+const RADAR_PRESETS = {
+  "VTuber": {
+    "おしゃべりが好き": {"雑談":5,"ゲーム":2,"癒し":3,"初見歓迎":3},
+    "ゲームがメイン":   {"雑談":2,"ゲーム":5,"癒し":2,"初見歓迎":3},
+    "初見さん歓迎":     {"雑談":3,"ゲーム":3,"癒し":3,"初見歓迎":5},
+    "癒し系":           {"雑談":3,"ゲーム":1,"癒し":5,"初見歓迎":3},
+  },
+  "歌い手": {
+    "バラードが得意":     {"歌唱力":4,"表現力":4,"バラード":5,"オリジナル曲":2},
+    "オリジナル曲中心":   {"歌唱力":3,"表現力":3,"バラード":2,"オリジナル曲":5},
+    "歌唱力に自信あり":   {"歌唱力":5,"表現力":3,"バラード":3,"オリジナル曲":2},
+  },
+  "配信者": {
+    "企画が得意":         {"企画力":5,"トーク":3,"ゲーム性":2,"コメント重視":3},
+    "ゲーム実況メイン":   {"企画力":2,"トーク":3,"ゲーム性":5,"コメント重視":2},
+    "コメントをよく拾う": {"企画力":2,"トーク":4,"ゲーム性":2,"コメント重視":5},
+  }
+};
+
+// 実際に画面が使うデータ（Supabase接続時はDBから、未接続時はMOCK_CREATORSから読み込む）
+let creators = [];
+let dataLoaded = false;
+
+let state = {
+  tab: "home",
+  interest: null,
+  moodFilter: null,
+  genreFilter: "すべて",
+  saved: new Set(),
+  cheeredMilestones: new Set(),
+  cpTotal: 128,
+  showRegisterForm: false,
+};
+
+// 活動者登録フォームの状態
+let formState = {
+  name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "",
+  radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])),
+};
+function resetRadarForGenre(genre){
+  formState.genre = genre;
+  formState.radar = Object.fromEntries(GENRE_AXES[genre].map(a=>[a,3]));
+}
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 1600);
+}
+
+// ------- アバター（仮画像の代わりに、名前から色相を生成した丸アイコン） -------
+function hueFromName(name){
+  let h = 0;
+  for (let i=0;i<name.length;i++){ h = (h*31 + name.charCodeAt(i)) % 360; }
+  return h;
+}
+function avatarHtml(c, size){
+  const hue = hueFromName(c.name);
+  const bg = `linear-gradient(135deg, hsl(${hue},70%,68%), hsl(${(hue+70)%360},70%,62%))`;
+  const fontSize = Math.round(size*0.36);
+  return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${fontSize}px;background:${bg}">${c.name.charAt(0)}</div>`;
+}
+
+// ------- 成長の可視化（「はじめて」からの経過や達成数） -------
+const NOW = new Date('2026-07-28');
+function daysSince(dateStr){
+  const d = Math.round((NOW - new Date(dateStr)) / 86400000);
+  return d;
+}
+function growthLine(creator){
+  if (!creator.milestones.length) return null;
+  const sorted = [...creator.milestones].sort((a,b)=> new Date(a.date) - new Date(b.date));
+  const firstDays = daysSince(sorted[0].date);
+  const count = creator.milestones.length;
+  return `🌱 はじめてから${firstDays}日 ・ 🎉 挑戦の記録 ${count}件`;
+}
+
+// ------- データ読み込み(Supabase / モック切り替え) -------
+function countCheers(reactions){
+  const counts = {};
+  CHEER_OPTIONS.forEach(o => counts[o.emoji] = 0);
+  (reactions||[]).forEach(r => { counts[r.emoji] = (counts[r.emoji]||0) + 1; });
+  return counts;
+}
+
+async function loadData(){
+  if (!sbClient){
+    creators = MOCK_CREATORS;
+    dataLoaded = true;
+    render();
+    return;
+  }
+  const { data, error } = await sbClient
+    .from('creators')
+    .select('*, milestones(*, reactions(emoji))')
+    .order('created_at', { ascending: false });
+
+  if (error){
+    console.error('[ハツミル] creators取得エラー', error);
+    toast('データの取得に失敗しました(モックデータで表示します)');
+    creators = MOCK_CREATORS;
+  } else {
+    creators = data.map(c => ({
+      ...c,
+      milestones: (c.milestones || [])
+        .map(m => ({ ...m, desc: m.description, cheers: countCheers(m.reactions) }))
+        .sort((a,b)=> new Date(b.date) - new Date(a.date)),
+    }));
+  }
+  dataLoaded = true;
+  render();
+}
+
+// ------- おすすめ理由（ルールベース） -------
+function recommendReason(creator){
+  // 1. 視聴者が選んだ興味軸が高スコアなら、それを理由にする
+  if (state.interest && creator.radar[state.interest] !== undefined && creator.radar[state.interest] >= 4){
+    return `「${state.interest}」が好きなあなたにおすすめ`;
+  }
+  // 2. 活動を始めたばかりなら、それを理由にする
+  if (creator.phase === "初配信済み"){
+    return "最近、活動を始めたばかりの方です";
+  }
+  // 3. デフォルト
+  return "あなたの検索傾向に近い活動者です";
+}
+
+// ------- 今日のはじめてフィード用データ抽出 -------
+function todaysMilestones(){
+  // 直近の記録を新しい順にまとめる
+  const all = [];
+  creators.forEach(c => c.milestones.forEach(m => all.push({...m, creatorId:c.id, creatorName:c.name, genre:c.genre})));
+  return all.sort((a,b)=> new Date(b.date) - new Date(a.date));
+}
+
+function cheerTotal(m){
+  return Object.values(m.cheers).reduce((a,b)=>a+b,0);
+}
+
+function renderCheerRow(m, compact){
+  return CHEER_OPTIONS.map(opt => {
+    const key = m.id + '_' + opt.emoji;
+    const sent = state.cheeredMilestones.has(key);
+    return `<button class="cheer-btn ${sent?'sent':''}" onclick="sendCheer('${m.id}','${opt.emoji}', event)">
+      ${opt.emoji} ${compact ? '' : opt.label}
+    </button>`;
+  }).join('');
+}
+
+window.sendCheer = async function(milestoneId, emoji, ev){
+  ev.stopPropagation();
+  const key = milestoneId + '_' + emoji;
+  if (state.cheeredMilestones.has(key)) return;
+  state.cheeredMilestones.add(key);
+  // 楽観的更新：先に画面を更新してから、裏でDBに書き込む
+  creators.forEach(c => c.milestones.forEach(m => {
+    if (m.id === milestoneId){ m.cheers[emoji] = (m.cheers[emoji]||0) + 1; }
+  }));
+  state.cpTotal += 1;
+  document.getElementById('cpTotal').textContent = state.cpTotal;
+  toast(`${emoji} 応援を送りました`);
+  render();
+
+  if (sbClient){
+    const { error } = await sbClient.from('reactions').insert({ milestone_id: milestoneId, emoji });
+    if (error) console.error('[ハツミル] reaction insert error', error);
+  }
+}
+
+// ------- レーダーチャート描画（軸数が可変） -------
+function renderRadar(axesObj){
+  const axes = Object.keys(axesObj);
+  const values = Object.values(axesObj);
+  const n = axes.length;
+  const size = 220, cx = size/2, cy = size/2, r = 78, maxVal = 5;
+
+  function point(i, val){
+    const angle = (Math.PI * 2 * i / n) - Math.PI/2;
+    const dist = (val/maxVal) * r;
+    return [cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist];
+  }
+  function gridPoint(i, dist){
+    const angle = (Math.PI * 2 * i / n) - Math.PI/2;
+    return [cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist];
+  }
+
+  let grids = "";
+  [0.33,0.66,1].forEach(f=>{
+    const pts = axes.map((_,i)=> gridPoint(i, r*f).join(',')).join(' ');
+    grids += `<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  });
+
+  let spokes = "";
+  axes.forEach((_,i)=>{
+    const [x,y] = gridPoint(i, r);
+    spokes += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  });
+
+  const dataPts = axes.map((a,i)=> point(i, axesObj[a]).join(',')).join(' ');
+
+  let dots = "";
+  let labels = "";
+  axes.forEach((a,i)=>{
+    const [px,py] = point(i, axesObj[a]);
+    dots += `<circle cx="${px}" cy="${py}" r="3.5" fill="#6EE7D8" style="filter:drop-shadow(0 0 4px #6EE7D8)"/>`;
+    const [lx,ly] = gridPoint(i, r+22);
+    labels += `<text x="${lx}" y="${ly}" fill="#8B96AC" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-family="Noto Sans JP">${a}</text>`;
+  });
+
+  return `
+  <svg width="${size}" height="${size+10}" viewBox="0 0 ${size} ${size+10}">
+    ${grids}${spokes}
+    <polygon points="${dataPts}" fill="rgba(110,231,216,0.18)" stroke="#6EE7D8" stroke-width="2"/>
+    ${dots}${labels}
+  </svg>`;
+}
+
+// ------- 画面：ホーム -------
+function viewHome(){
+  const feed = todaysMilestones();
+  return `
+    <div class="search-bar" style="margin-top:8px" onclick="goTab('search')"><span>🔎</span><input placeholder="活動者を探す" readonly style="cursor:pointer"/></div>
+
+    <div class="section-label">Today's はじめて</div>
+    <div class="hero-title"><span class="pulse-dot"></span>今日の「はじめて」</div>
+    <div class="section-sub">頑張っている人に、応援を届けよう</div>
+    <div class="milestone-scroll">
+      ${feed.map((m,i) => `
+        <div class="milestone-card ${i===0?'featured':''}" onclick="openProfile('${m.creatorId}')">
+          <span class="milestone-tag">${m.title}</span>
+          <div class="name">${m.creatorName}</div>
+          <div class="desc">${m.desc}</div>
+          <div class="cheer-row">${renderCheerRow(m, true)}</div>
+          <div class="cheer-count">応援 ${cheerTotal(m)}件</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="section-label" style="margin-top:26px;">Recommended</div>
+    <div class="section-title">🧭 あなたに合いそうな活動者</div>
+    <div class="section-sub">興味のジャンルを選ぶと、おすすめ理由が変わります</div>
+    <div class="filter-row">
+      ${["すべて","雑談","ゲーム","癒し","初見歓迎","歌唱力","バラード","企画力","トーク"].map(tag=>`
+        <div class="chip ${state.interest===tag || (tag==='すべて' && !state.interest) ? 'active':''}" onclick="setInterest('${tag}')">${tag}</div>
+      `).join('')}
+    </div>
+    ${creators.map(c => `
+      <div class="creator-card" onclick="openProfile('${c.id}')">
+        ${avatarHtml(c,52)}
+        <div class="creator-info">
+          <div class="name">${c.name}</div>
+          <div class="genre">${c.genre}</div>
+          <span class="phase-badge">${c.phase}</span>
+          <div class="reason-line">💡 ${recommendReason(c)}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+window.setInterest = function(tag){
+  state.interest = (tag === "すべて") ? null : tag;
+  render();
+}
+
+// ------- 画面：検索 -------
+function viewSearch(){
+  const genres = ["すべて", ...new Set(creators.map(c=>c.genre))];
+  const moods = [...new Set(Object.values(GENRE_AXES).flat())];
+  const filtered = creators.filter(c => {
+    const genreOk = state.genreFilter === "すべて" || c.genre === state.genreFilter;
+    const moodOk = !state.moodFilter || (c.radar[state.moodFilter] !== undefined && c.radar[state.moodFilter] >= 4);
+    return genreOk && moodOk;
+  });
+  return `
+    <div class="section-label">Search</div>
+    <div class="section-title">🔍 条件で探す</div>
+    <div class="search-bar"><span>🔎</span><input placeholder="名前・キーワードで検索"/></div>
+
+    <div class="section-sub" style="margin-top:2px;">ジャンルで探す</div>
+    <div class="filter-row">
+      ${genres.map(g => `<div class="chip ${state.genreFilter===g?'active':''}" onclick="setGenreFilter('${g}')">${g}</div>`).join('')}
+    </div>
+
+    <div class="section-sub">雰囲気で探す（相性チャートの項目から）</div>
+    <div class="filter-row">
+      <div class="chip ${!state.moodFilter?'active':''}" onclick="setMoodFilter(null)">すべて</div>
+      ${moods.map(m => `<div class="chip ${state.moodFilter===m?'active':''}" onclick="setMoodFilter('${m}')">${m}</div>`).join('')}
+    </div>
+
+    ${filtered.length===0 ? '<div class="empty-note">条件に合う活動者が見つかりませんでした。</div>' : ''}
+    ${filtered.map(c => `
+      <div class="creator-card" onclick="openProfile('${c.id}')">
+        ${avatarHtml(c,52)}
+        <div class="creator-info">
+          <div class="name">${c.name}</div>
+          <div class="genre">${c.genre}</div>
+          <span class="phase-badge">${c.phase}</span>
+          <div class="reason-line">💡 ${recommendReason(c)}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+window.setGenreFilter = function(g){ state.genreFilter = g; render(); }
+window.setMoodFilter = function(m){ state.moodFilter = m; render(); }
+
+// ------- 画面：あとで見る -------
+function viewSaved(){
+  const list = creators.filter(c => state.saved.has(c.id));
+  if (list.length === 0){
+    return `
+      <div class="section-label">Saved</div>
+      <div class="section-title">🔖 あとで見る</div>
+      <div class="empty-note">気になった活動者を保存すると、ここに表示されます。</div>
+    `;
+  }
+  return `
+    <div class="section-label">Saved</div>
+    <div class="section-title">🔖 あとで見る</div>
+    ${list.map(c => `
+      <div class="creator-card" onclick="openProfile('${c.id}')">
+        ${avatarHtml(c,52)}
+        <div class="creator-info">
+          <div class="name">${c.name}</div>
+          <div class="genre">${c.genre}</div>
+          <span class="phase-badge">${c.phase}</span>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ------- 画面：マイページ -------
+function viewMyPage(){
+  if (state.showRegisterForm){
+    return viewRegister();
+  }
+  return `
+    <div class="section-label">My Page</div>
+    <div class="section-title">👤 マイページ</div>
+    <div class="mypage-card">
+      <div class="mypage-card-title">🌱 活動者として登録する</div>
+      <div class="mypage-card-desc">配信・音楽・イラストなど、活動している方はこちらからプロフィールを作成できます。視聴者としての利用に登録は不要です。</div>
+      <button class="save-btn" style="border-color:var(--aqua-dim); color:var(--aqua);" onclick="state.showRegisterForm=true; render();">活動者登録をはじめる</button>
+    </div>
+    <div class="mypage-card">
+      <div class="mypage-card-title">🌸 応援した回数</div>
+      <div class="mypage-card-desc mono" style="font-size:20px; color:var(--coral); margin-top:6px;">${state.cpTotal} 回</div>
+    </div>
+  `;
+}
+window.setInterest0 = null;
+
+// ------- 画面：活動者登録 -------
+function viewRegister(){
+  const axes = GENRE_AXES[formState.genre];
+  return `
+    <div class="back-link" onclick="state.showRegisterForm=false; render();">← マイページに戻る</div>
+    <div class="section-label">Join as Creator</div>
+    <div class="section-title">🌱 活動者として登録する</div>
+    <div class="section-sub">入力は3分ほどで終わります。あとから編集できます。</div>
+
+    <div class="form-block">
+      <label class="form-label">お名前 / 活動名</label>
+      <input class="form-input" value="${formState.name}" placeholder="例）つきのわ みお"
+        oninput="formState.name=this.value" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">ジャンル</label>
+      <div class="filter-row" style="margin-bottom:0;">
+        ${Object.keys(GENRE_AXES).map(g => `
+          <div class="chip ${formState.genre===g?'active':''}" onclick="setFormGenre('${g}')">${g}</div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">今の活動フェーズ</label>
+      <div class="filter-row" style="margin-bottom:0;">
+        ${["準備中","初配信済み","活動継続中"].map(p => `
+          <div class="chip ${formState.phase===p?'active':''}" onclick="setFormPhase('${p}')">${p}</div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">自己紹介</label>
+      <textarea class="form-input" rows="3" placeholder="どんな活動をしているか、雰囲気が伝わるように書いてみましょう"
+        oninput="formState.bio=this.value">${formState.bio}</textarea>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">配信・投稿サイトのURL</label>
+      <input class="form-input" value="${formState.sns}" placeholder="https://..."
+        oninput="formState.sns=this.value" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">相性チャート（自己評価）</label>
+      <div class="section-sub" style="margin-bottom:8px;">近いスタイルを選ぶと自動で初期値が入ります（あとで細かく調整できます）</div>
+      <div class="filter-row" style="margin-bottom:14px;">
+        ${Object.entries(RADAR_PRESETS[formState.genre]).map(([label, values]) => `
+          <div class="chip" onclick='applyPreset(${JSON.stringify(JSON.stringify(values))})'>${label}</div>
+        `).join('')}
+      </div>
+      ${axes.map(a => `
+        <div class="slider-row">
+          <div class="slider-label"><span>${a}</span><span class="mono" id="val_${a}">${formState.radar[a]}</span></div>
+          <input type="range" min="0" max="5" step="0.5" value="${formState.radar[a]}" class="slider"
+            oninput="formState.radar['${a}']=this.value; document.getElementById('val_${a}').textContent=this.value" />
+        </div>
+      `).join('')}
+    </div>
+
+    <button class="go-btn" style="margin-top:20px;" onclick="submitRegistration()">
+      <span>🌱 ハツミルに登録する</span>
+      <span class="go-sub">あとから内容は編集できます</span>
+    </button>
+  `;
+}
+window.applyPreset = function(jsonStr){
+  const values = JSON.parse(jsonStr);
+  formState.radar = {...values};
+  toast('スタイルに合わせて初期値を入力しました');
+  render();
+}
+window.setFormGenre = function(g){ resetRadarForGenre(g); render(); }
+window.setFormPhase = function(p){ formState.phase = p; render(); }
+window.submitRegistration = async function(){
+  if (!formState.name.trim()){
+    toast('お名前を入力してください');
+    return;
+  }
+  const payload = {
+    name: formState.name,
+    genre: formState.genre,
+    phase: formState.phase,
+    bio: formState.bio || "はじめまして、よろしくお願いします。",
+    sns_url: formState.sns || null,
+    radar: {...formState.radar},
+  };
+
+  let newId;
+  if (sbClient){
+    const { data, error } = await sbClient.from('creators').insert(payload).select().single();
+    if (error){
+      console.error('[ハツミル] creator insert error', error);
+      toast('登録に失敗しました。時間をおいて試してください');
+      return;
+    }
+    newId = data.id;
+    creators.unshift({ ...data, milestones: [] });
+  } else {
+    newId = 'c' + (creators.length + 1) + '_' + Date.now();
+    creators.unshift({ id: newId, ...payload, milestones: [] });
+  }
+
+  toast('🌱 登録が完了しました！');
+  formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])) };
+  state.showRegisterForm = false;
+  goTab('home');
+  setTimeout(()=> openProfile(newId), 300);
+}
+
+// ------- プロフィールモーダル -------
+window.openProfile = function(id){
+  const c = creators.find(x=>x.id===id);
+  const overlay = document.getElementById('modalOverlay');
+  const modal = document.getElementById('modalContent');
+  const isSaved = state.saved.has(id);
+
+  modal.innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-close" onclick="closeProfile()">✕</div>
+
+    <div class="profile-header">
+      ${avatarHtml(c,64)}
+      <div>
+        <div class="name">${c.name}</div>
+        <div class="genre">${c.genre} ・ <span style="color:#6EE7D8">${c.phase}</span></div>
+      </div>
+    </div>
+
+    ${growthLine(c) ? `<div class="growth-line">${growthLine(c)}</div>` : ''}
+
+    <div class="reason-box">💡 <span>${recommendReason(c)}</span></div>
+
+    <div class="bio">${c.bio}</div>
+
+    <div class="section-label" style="margin-top:18px;">Radar</div>
+    <div class="section-title">相性チャート</div>
+    <div class="radar-wrap">${renderRadar(c.radar)}</div>
+
+    <div class="section-label" style="margin-top:20px;">Milestones</div>
+    <div class="section-title">🌱 はじめて記録</div>
+    <div class="timeline">
+      ${c.milestones.map(m => `
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-content" style="flex:1">
+            <div class="tl-title">${m.title}</div>
+            <div class="tl-date">${m.date}</div>
+            <div class="tl-desc">${m.desc}</div>
+            <div class="cheer-row">${renderCheerRow(m,false)}</div>
+            <div class="cheer-count">応援 ${cheerTotal(m)}件</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <button class="go-btn" onclick="goToStream('${c.name}', '${(c.sns_url||'').replace(/'/g,"\\'")}')">
+      <span>✨ この人に会いに行く</span>
+      <span class="go-sub">▶ 配信を見る</span>
+    </button>
+    <button class="save-btn" onclick="toggleSave('${c.id}')">${isSaved ? '✓ 保存済み（タップで解除）' : '🔖 あとで見るに保存'}</button>
+  `;
+  overlay.classList.add('open');
+}
+window.closeProfile = function(){
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+window.goToStream = function(name, url){
+  if (url){
+    window.open(url, '_blank', 'noopener');
+  } else {
+    toast(`📺 ${name} さんの配信URLはまだ登録されていません`);
+  }
+}
+window.toggleSave = function(id){
+  if (state.saved.has(id)) { state.saved.delete(id); } else { state.saved.add(id); toast('🔖 あとで見るに保存しました'); }
+  openProfile(id); // 再描画
+}
+
+// ------- ナビゲーション -------
+window.goTab = function(tab){
+  state.tab = tab;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.tab===tab));
+  render();
+}
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click', ()=> goTab(el.dataset.tab));
+});
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if (e.target.id === 'modalOverlay') closeProfile();
+});
+
+function render(){
+  const main = document.getElementById('mainView');
+  if (state.tab === 'home') main.innerHTML = viewHome();
+  else if (state.tab === 'search') main.innerHTML = viewSearch();
+  else if (state.tab === 'register') main.innerHTML = viewRegister();
+  else if (state.tab === 'saved') main.innerHTML = viewSaved();
+  else if (state.tab === 'mypage') main.innerHTML = viewMyPage();
+}
+
+render();
+loadData();
+</script>
+</body>
+</html>

@@ -580,7 +580,7 @@ function renderRadar(axesObj){
   const axes = Object.keys(axesObj);
   const values = Object.values(axesObj);
   const n = axes.length;
-    const pad = 34; // ラベルがはみ出さないための左右上下の余白
+      const pad = 40; // ラベルがはみ出さない・データ点と重ならないための余白
     const size = 220, cx = (size + pad*2)/2, cy = (size + pad*2)/2, r = 78, maxVal = 5;
 
   function point(i, val){
@@ -612,7 +612,7 @@ function renderRadar(axesObj){
   axes.forEach((a,i)=>{
     const [px,py] = point(i, axesObj[a]);
     dots += `<circle cx="${px}" cy="${py}" r="3.5" fill="#6EE7D8" style="filter:drop-shadow(0 0 4px #6EE7D8)"/>`;
-    const [lx,ly] = gridPoint(i, r+22);
+        const [lx,ly] = gridPoint(i, r+30);
     labels += `<text x="${lx}" y="${ly}" fill="#8B96AC" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-family="Noto Sans JP">${a}</text>`;
   });
 

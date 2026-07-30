@@ -341,8 +341,8 @@
    3. Project Settings → API から URL と anon public key を取得し、下の2行に貼り付ける
    未設定の間は自動的にモックデータで動作します（デモ用）
 ------------------------------------------------------ */
-const SUPABASE_URL = "";       // 例: https://xxxxxxxx.supabase.co
-const SUPABASE_ANON_KEY = "";  // 例: eyJhbGciOi...
+const SUPABASE_URL = "https://fksmpkgxrhdsptoqoere.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_EYueXxYctbA2i_DN8Hs-Rw_Y8spRB2J";
 const sbClient = (SUPABASE_URL && SUPABASE_ANON_KEY)
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;

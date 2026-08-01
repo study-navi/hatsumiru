@@ -273,6 +273,16 @@
   }
   .mypage-card-title{ font-weight:700; font-size:14px; margin-bottom:6px; }
   .mypage-card-desc{ font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:12px; }
+  .my-creator-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 10px 0; border-top: 1px solid var(--border);
+  }
+  .my-creator-row:first-of-type{ border-top:none; }
+  .edit-btn{
+    flex-shrink:0; padding: 7px 14px; border-radius:100px; font-size:11.5px;
+    background:transparent; color:var(--aqua); border:1px solid var(--aqua-dim); cursor:pointer;
+  }
+  .edit-btn:active{ transform: scale(0.96); }
   .back-link{
     font-size:12px; color: var(--muted); cursor:pointer; margin: 10px 0 4px; display:inline-flex; align-items:center; gap:4px;
   }
@@ -428,6 +438,20 @@ const RADAR_PRESETS = {
 let creators = [];
 let dataLoaded = false;
 
+// 「自分が登録した活動者」をこの端末に覚えておく（ログイン機能なしの無料実装）
+const MY_CREATORS_KEY = 'hatsumiru_my_creators';
+function getMyCreatorIds(){
+  try { return JSON.parse(localStorage.getItem(MY_CREATORS_KEY) || '[]'); }
+  catch { return []; }
+}
+function addMyCreatorId(id){
+  const ids = getMyCreatorIds();
+  if (!ids.includes(id)){
+    ids.push(id);
+    localStorage.setItem(MY_CREATORS_KEY, JSON.stringify(ids));
+  }
+}
+
 let state = {
   tab: "home",
   interest: null,
@@ -437,6 +461,7 @@ let state = {
   cheeredMilestones: new Set(),
   cpTotal: 128,
   showRegisterForm: false,
+  editingId: null,
 };
 
 // 活動者登録フォームの状態
@@ -745,9 +770,25 @@ function viewMyPage(){
   if (state.showRegisterForm){
     return viewRegister();
   }
+  const myIds = getMyCreatorIds();
+  const myCreators = creators.filter(c => myIds.includes(c.id));
   return `
     <div class="section-label">My Page</div>
     <div class="section-title">👤 マイページ</div>
+    ${myCreators.length ? `
+      <div class="mypage-card">
+        <div class="mypage-card-title">📝 自分が登録した活動者</div>
+        ${myCreators.map(c => `
+          <div class="my-creator-row">
+            <div>
+              <div style="font-weight:700;">${c.name}</div>
+              <div class="mypage-card-desc" style="margin-top:2px;">${c.genre}・${c.phase}</div>
+            </div>
+            <button class="edit-btn" onclick="startEdit('${c.id}')">編集する</button>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
     <div class="mypage-card">
       <div class="mypage-card-title">🌱 活動者として登録する</div>
       <div class="mypage-card-desc">配信・音楽・イラストなど、活動している方はこちらからプロフィールを作成できます。視聴者としての利用に登録は不要です。</div>
@@ -759,16 +800,29 @@ function viewMyPage(){
     </div>
   `;
 }
+window.startEdit = function(id){
+  const c = creators.find(c => c.id === id);
+  if (!c) return;
+  formState = {
+    name: c.name, genre: c.genre, phase: c.phase,
+    bio: c.bio || "", sns: c.sns_url || "",
+    radar: { ...c.radar },
+  };
+  state.editingId = id;
+  state.showRegisterForm = true;
+  render();
+}
 window.setInterest0 = null;
 
-// ------- 画面：活動者登録 -------
+// ------- 画面：活動者登録・編集 -------
 function viewRegister(){
   const axes = GENRE_AXES[formState.genre];
+  const isEdit = !!state.editingId;
   return `
-    <div class="back-link" onclick="state.showRegisterForm=false; render();">← マイページに戻る</div>
-    <div class="section-label">Join as Creator</div>
-    <div class="section-title">🌱 活動者として登録する</div>
-    <div class="section-sub">入力は3分ほどで終わります。あとから編集できます。</div>
+    <div class="back-link" onclick="state.showRegisterForm=false; state.editingId=null; render();">← マイページに戻る</div>
+    <div class="section-label">${isEdit ? 'Edit Profile' : 'Join as Creator'}</div>
+    <div class="section-title">${isEdit ? '✏️ 登録内容を編集する' : '🌱 活動者として登録する'}</div>
+    <div class="section-sub">${isEdit ? '内容を直したら保存してください' : '入力は3分ほどで終わります。あとから編集できます。'}</div>
 
     <div class="form-block">
       <label class="form-label">お名前 / 活動名</label>
@@ -824,8 +878,8 @@ function viewRegister(){
     </div>
 
     <button class="go-btn" style="margin-top:20px;" onclick="submitRegistration()">
-      <span>🌱 ハツミルに登録する</span>
-      <span class="go-sub">あとから内容は編集できます</span>
+      <span>${isEdit ? '💾 変更を保存する' : '🌱 ハツミルに登録する'}</span>
+      <span class="go-sub">${isEdit ? '' : 'あとから内容は編集できます'}</span>
     </button>
   `;
 }
@@ -851,22 +905,44 @@ window.submitRegistration = async function(){
     radar: {...formState.radar},
   };
 
-  let newId;
-  if (sbClient){
-    const { data, error } = await sbClient.from('creators').insert(payload).select().single();
-    if (error){
-      console.error('[ハツミル] creator insert error', error);
-      toast('登録に失敗しました。時間をおいて試してください');
-      return;
+  if (state.editingId){
+    // ---- 編集（更新）----
+    const id = state.editingId;
+    if (sbClient){
+      const { data, error } = await sbClient.from('creators').update(payload).eq('id', id).select().single();
+      if (error){
+        console.error('[ハツミル] creator update error', error);
+        toast('更新に失敗しました。時間をおいて試してください');
+        return;
+      }
+      const idx = creators.findIndex(c => c.id === id);
+      if (idx >= 0) creators[idx] = { ...creators[idx], ...data };
+    } else {
+      const idx = creators.findIndex(c => c.id === id);
+      if (idx >= 0) creators[idx] = { ...creators[idx], ...payload };
     }
-    newId = data.id;
-    creators.unshift({ ...data, milestones: [] });
+    toast('💾 変更を保存しました');
+    state.editingId = null;
   } else {
-    newId = 'c' + (creators.length + 1) + '_' + Date.now();
-    creators.unshift({ id: newId, ...payload, milestones: [] });
+    // ---- 新規登録 ----
+    let newId;
+    if (sbClient){
+      const { data, error } = await sbClient.from('creators').insert(payload).select().single();
+      if (error){
+        console.error('[ハツミル] creator insert error', error);
+        toast('登録に失敗しました。時間をおいて試してください');
+        return;
+      }
+      newId = data.id;
+      creators.unshift({ ...data, milestones: [] });
+    } else {
+      newId = 'c' + (creators.length + 1) + '_' + Date.now();
+      creators.unshift({ id: newId, ...payload, milestones: [] });
+    }
+    addMyCreatorId(newId);
+    toast('🌱 登録が完了しました！');
   }
 
-  toast('🌱 登録が完了しました！');
   formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])) };
   state.showRegisterForm = false;
   goTab('home');

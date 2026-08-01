@@ -148,6 +148,25 @@
   }
   .search-bar input::placeholder{ color: var(--muted-dim); }
   .filter-row{ display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; scrollbar-width:none; }
+  .rsvp-card{
+    background:var(--glass); border:1px solid var(--border); border-radius:18px;
+    padding:16px; margin-bottom:14px;
+  }
+  .rsvp-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  .rsvp-head .name{ font-weight:700; font-size:14px; }
+  .rsvp-head .meta{ font-size:11px; color:var(--coral); font-family:'JetBrains Mono',monospace; }
+  .rsvp-desc{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
+  .rsvp-row{ display:flex; gap:6px; }
+  .rsvp-btn{
+    flex:1; padding:10px 0; border-radius:100px; font-size:11px; font-weight:700;
+    border:1px solid var(--border); background:transparent; color:var(--text);
+    cursor:pointer;
+  }
+  .rsvp-btn.going{ background:linear-gradient(90deg,var(--aqua),var(--coral)); color:#0B0F1A; border:none; }
+  .rsvp-btn.going.selected{ background:rgba(110,231,216,0.16); color:var(--aqua); border:2px solid var(--aqua); }
+  .rsvp-btn.maybe.selected{ border-color:var(--coral-dim); color:var(--coral); }
+  .rsvp-btn.interested.selected{ border-color:var(--aqua-dim); color:var(--aqua); }
+  .rsvp-counts{ margin-top:9px; font-size:10.5px; color:var(--muted); }
   .filter-row::-webkit-scrollbar{ display:none; }
   .chip{
     font-size:12px; padding:7px 13px; border-radius:100px; border:1px solid var(--border);
@@ -436,6 +455,7 @@ const RADAR_PRESETS = {
 
 // 実際に画面が使うデータ（Supabase接続時はDBから、未接続時はMOCK_CREATORSから読み込む）
 let creators = [];
+let streamSchedules = [];
 let dataLoaded = false;
 
 // 「自分が登録した活動者」をこの端末に覚えておく（ログイン機能なしの無料実装）
@@ -450,6 +470,15 @@ function addMyCreatorId(id){
     ids.push(id);
     localStorage.setItem(MY_CREATORS_KEY, JSON.stringify(ids));
   }
+}
+// 配信予定への意思表示（連打による水増し防止のための端末識別）
+function getDeviceId(){
+  let id = localStorage.getItem('hatsumiru_device_id');
+  if (!id){
+    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+    localStorage.setItem('hatsumiru_device_id', id);
+  }
+  return id;
 }
 
 let state = {
@@ -546,6 +575,37 @@ async function loadData(){
     }));
   }
   dataLoaded = true;
+
+  // ---- 配信予定・意思表示の取得 ----
+  if (sbClient){
+    const { data: schedData, error: schedErr } = await sbClient
+      .from('stream_schedules')
+      .select('*, creators(name), stream_rsvps(choice, device_id)')
+      .order('scheduled_at', { ascending: true });
+    if (schedErr){
+      console.error('[ハツミル] 配信予定取得エラー', schedErr);
+      streamSchedules = [];
+    } else {
+      const myDevice = getDeviceId();
+      streamSchedules = (schedData||[]).map(s => {
+        const rsvps = s.stream_rsvps || [];
+        const counts = { going:0, maybe:0, interested:0 };
+        let myChoice = null;
+        rsvps.forEach(r => {
+          counts[r.choice] = (counts[r.choice]||0) + 1;
+          if (r.device_id === myDevice) myChoice = r.choice;
+        });
+        return {
+          id: s.id, creatorId: s.creator_id, creatorName: s.creators?.name || '',
+          description: s.description, scheduledAt: s.scheduled_at,
+          counts, myChoice,
+        };
+      });
+    }
+  } else {
+    streamSchedules = [];
+  }
+
   render();
 }
 
@@ -655,6 +715,66 @@ function renderRadar(axesObj){
 }
 
 // ------- 画面：ホーム -------
+// ------- 配信予定への意思表示 -------
+function formatScheduleTime(iso){
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const label = isToday ? '今日' : isTomorrow ? '明日' : `${d.getMonth()+1}/${d.getDate()}`;
+  return `${label} ${hh}:${mm}〜`;
+}
+function renderStreamSchedules(){
+  if (!streamSchedules.length) return '';
+  return `
+    <div class="section-label" style="margin-top:26px;">Upcoming Stream</div>
+    <div class="section-title">📅 配信予定</div>
+    ${streamSchedules.map(s => `
+      <div class="rsvp-card">
+        <div class="rsvp-head">
+          <div class="name">${s.creatorName}</div>
+          <div class="meta">${formatScheduleTime(s.scheduledAt)}</div>
+        </div>
+        <div class="rsvp-desc">${s.description||''}</div>
+        <div class="rsvp-row">
+          <button class="rsvp-btn going ${s.myChoice==='going'?'selected':''}" onclick="setRsvp('${s.id}','going')">🔥 行く！${s.myChoice==='going'?' ✓':''}</button>
+          <button class="rsvp-btn maybe ${s.myChoice==='maybe'?'selected':''}" onclick="setRsvp('${s.id}','maybe')">🤔 行けたら行く</button>
+          <button class="rsvp-btn interested ${s.myChoice==='interested'?'selected':''}" onclick="setRsvp('${s.id}','interested')">👀 気になる</button>
+        </div>
+        <div class="rsvp-counts">🔥 行く ${s.counts.going}人 ・ 🤔 行けたら ${s.counts.maybe}人 ・ 👀 気になる ${s.counts.interested}人</div>
+      </div>
+    `).join('')}
+  `;
+}
+window.setRsvp = async function(scheduleId, choice){
+  const s = streamSchedules.find(s => s.id === scheduleId);
+  if (!s) return;
+  const prevChoice = s.myChoice;
+  const newChoice = prevChoice === choice ? null : choice;
+  const deviceId = getDeviceId();
+
+  if (sbClient){
+    if (newChoice === null){
+      const { error } = await sbClient.from('stream_rsvps').delete().eq('schedule_id', scheduleId).eq('device_id', deviceId);
+      if (error){ console.error('[ハツミル] rsvp delete error', error); toast('通信エラーが発生しました'); return; }
+    } else {
+      const { error } = await sbClient.from('stream_rsvps').upsert(
+        { schedule_id: scheduleId, device_id: deviceId, choice: newChoice },
+        { onConflict: 'schedule_id,device_id' }
+      );
+      if (error){ console.error('[ハツミル] rsvp upsert error', error); toast('通信エラーが発生しました'); return; }
+    }
+  }
+
+  if (prevChoice) s.counts[prevChoice] = Math.max(0, s.counts[prevChoice]-1);
+  if (newChoice) s.counts[newChoice] = (s.counts[newChoice]||0) + 1;
+  s.myChoice = newChoice;
+  render();
+}
+
 function viewHome(){
   const feed = todaysMilestones();
   return `
@@ -675,7 +795,9 @@ function viewHome(){
       `).join('')}
     </div>
 
-    <div class="section-label" style="margin-top:26px;">Recommended</div>
+${renderStreamSchedules()}
+
+        <div class="section-label" style="margin-top:26px;">Recommended</div>
     <div class="section-title">🧭 あなたに合いそうな活動者</div>
     <div class="section-sub">興味のジャンルを選ぶと、おすすめ理由が変わります</div>
     <div class="filter-row">

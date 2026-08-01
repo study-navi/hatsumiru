@@ -457,6 +457,7 @@ let state = {
   interest: null,
   moodFilter: null,
   genreFilter: "すべて",
+  searchQuery: "",
   saved: new Set(),
   cheeredMilestones: new Set(),
   cpTotal: 128,
@@ -701,15 +702,17 @@ window.setInterest = function(tag){
 function viewSearch(){
   const genres = ["すべて", ...new Set(creators.map(c=>c.genre))];
   const moods = [...new Set(Object.values(GENRE_AXES).flat())];
+  const q = state.searchQuery.trim().toLowerCase();
   const filtered = creators.filter(c => {
     const genreOk = state.genreFilter === "すべて" || c.genre === state.genreFilter;
     const moodOk = !state.moodFilter || (c.radar[state.moodFilter] !== undefined && c.radar[state.moodFilter] >= 4);
-    return genreOk && moodOk;
+    const queryOk = !q || c.name.toLowerCase().includes(q) || (c.bio||"").toLowerCase().includes(q) || c.genre.toLowerCase().includes(q);
+    return genreOk && moodOk && queryOk;
   });
   return `
     <div class="section-label">Search</div>
     <div class="section-title">🔍 条件で探す</div>
-    <div class="search-bar"><span>🔎</span><input placeholder="名前・キーワードで検索"/></div>
+    <div class="search-bar"><span>🔎</span><input placeholder="名前・キーワードで検索" value="${state.searchQuery}" oninput="setSearchQuery(this.value)"/></div>
 
     <div class="section-sub" style="margin-top:2px;">ジャンルで探す</div>
     <div class="filter-row">
@@ -738,6 +741,18 @@ function viewSearch(){
 }
 window.setGenreFilter = function(g){ state.genreFilter = g; render(); }
 window.setMoodFilter = function(m){ state.moodFilter = m; render(); }
+window.setSearchQuery = function(v){
+  state.searchQuery = v;
+  const main = document.getElementById('mainView');
+  const input = main.querySelector('.search-bar input');
+  const caret = input ? input.selectionStart : null;
+  main.innerHTML = viewSearch();
+  const newInput = main.querySelector('.search-bar input');
+  if (newInput){
+    newInput.focus();
+    if (caret !== null) newInput.setSelectionRange(caret, caret);
+  }
+}
 
 // ------- 画面：あとで見る -------
 function viewSaved(){

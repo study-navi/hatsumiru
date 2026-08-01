@@ -469,6 +469,7 @@ let state = {
 let formState = {
   name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "",
   radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])),
+  avatarFile: null, avatarPreviewUrl: null, avatarUrl: null,
 };
 function resetRadarForGenre(genre){
   formState.genre = genre;
@@ -489,6 +490,9 @@ function hueFromName(name){
   return h;
 }
 function avatarHtml(c, size){
+  if (c.avatar_url){
+    return `<div class="avatar" style="width:${size}px;height:${size}px;background-image:url('${c.avatar_url}');background-size:cover;background-position:center;"></div>`;
+  }
   const hue = hueFromName(c.name);
   const bg = `linear-gradient(135deg, hsl(${hue},70%,68%), hsl(${(hue+70)%360},70%,62%))`;
   const fontSize = Math.round(size*0.36);
@@ -822,6 +826,7 @@ window.startEdit = function(id){
     name: c.name, genre: c.genre, phase: c.phase,
     bio: c.bio || "", sns: c.sns_url || "",
     radar: { ...c.radar },
+    avatarFile: null, avatarPreviewUrl: null, avatarUrl: c.avatar_url || null,
   };
   state.editingId = id;
   state.showRegisterForm = true;
@@ -860,6 +865,25 @@ function viewRegister(){
         ${["準備中","初配信済み","活動継続中"].map(p => `
           <div class="chip ${formState.phase===p?'active':''}" onclick="setFormPhase('${p}')">${p}</div>
         `).join('')}
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">プロフィール画像（任意）</label>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div id="avatarPreviewWrap">
+          ${formState.avatarPreviewUrl
+            ? `<div class="avatar" style="width:64px;height:64px;background-image:url('${formState.avatarPreviewUrl}');background-size:cover;background-position:center;"></div>`
+            : (formState.avatarUrl
+              ? `<div class="avatar" style="width:64px;height:64px;background-image:url('${formState.avatarUrl}');background-size:cover;background-position:center;"></div>`
+              : `<div class="avatar" style="width:64px;height:64px;background:var(--glass);border:1px solid var(--border);font-size:11px;color:var(--muted);">未設定</div>`)
+          }
+        </div>
+        <div>
+          <input type="file" accept="image/*" id="avatarFileInput" style="display:none" onchange="handleAvatarFile(this)" />
+          <button type="button" class="chip" style="cursor:pointer;" onclick="document.getElementById('avatarFileInput').click()">画像を選ぶ</button>
+          <div class="section-sub" style="margin:6px 0 0;">5MBまでのJPG・PNG</div>
+        </div>
       </div>
     </div>
 
@@ -906,11 +930,42 @@ window.applyPreset = function(jsonStr){
 }
 window.setFormGenre = function(g){ resetRadarForGenre(g); render(); }
 window.setFormPhase = function(p){ formState.phase = p; render(); }
+window.handleAvatarFile = function(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024){
+    toast('画像サイズは5MBまでにしてください');
+    input.value = '';
+    return;
+  }
+  formState.avatarFile = file;
+  formState.avatarPreviewUrl = URL.createObjectURL(file);
+  render();
+}
 window.submitRegistration = async function(){
   if (!formState.name.trim()){
     toast('お名前を入力してください');
     return;
   }
+let avatarUrl = formState.avatarUrl || null;
+  if (formState.avatarFile){
+    if (sbClient){
+      const file = formState.avatarFile;
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const { error: upErr } = await sbClient.storage.from('avatars').upload(path, file);
+      if (upErr){
+        console.error('[ハツミル] avatar upload error', upErr);
+        toast('画像のアップロードに失敗しました');
+        return;
+      }
+      const { data: pub } = sbClient.storage.from('avatars').getPublicUrl(path);
+      avatarUrl = pub.publicUrl;
+    } else {
+      avatarUrl = formState.avatarPreviewUrl;
+    }
+  }
+
   const payload = {
     name: formState.name,
     genre: formState.genre,
@@ -918,6 +973,7 @@ window.submitRegistration = async function(){
     bio: formState.bio || "はじめまして、よろしくお願いします。",
     sns_url: formState.sns || null,
     radar: {...formState.radar},
+    avatar_url: avatarUrl,
   };
 
   if (state.editingId){
@@ -958,7 +1014,7 @@ window.submitRegistration = async function(){
     toast('🌱 登録が完了しました！');
   }
 
-  formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])) };
+  formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])), avatarFile:null, avatarPreviewUrl:null, avatarUrl:null };
   state.showRegisterForm = false;
   goTab('home');
   setTimeout(()=> openProfile(newId), 300);

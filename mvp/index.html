@@ -772,7 +772,7 @@ let state = {
 
 // 活動者登録フォームの状態
 let formState = {
-  name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "",
+  name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "", mainTag: "",
   radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])),
   commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3 },
   avatarFile: null, avatarPreviewUrl: null, avatarUrl: null,
@@ -1523,6 +1523,68 @@ window.setInterest0 = null;
 
 // ------- 画面：活動者登録・編集 -------
 function viewRegister(){
+  const isEdit = !!state.editingId;
+  if (!isEdit) return viewRegisterStep1();
+  return viewRegisterFull();
+}
+function viewRegisterStep1(){
+  const previewHtml = formState.avatarPreviewUrl
+    ? '<div class="avatar" style="width:64px;height:64px;background-image:url('${formState.avatarPreviewUrl}');background-size:cover;background-position:center;"></div>'
+    : (formState.avatarUrl
+      ? '<div class="avatar" style="width:64px;height:64px;background-image:url('${formState.avatarUrl}');background-size:cover;background-position:center;"></div>'
+      : cardImageHtml({ name: formState.name || '?', avatar_url: null }).replace('class="card-image"', 'class="avatar" style="width:64px;height:64px;"'));
+  return '
+    <div class="back-link" onclick="state.showRegisterForm=false; render();">← マイページに戻る</div>
+    <div class="section-label">Join as Creator ・ Step 1/3</div>
+    <div class="section-title">🌱 まず掲載する</div>
+    <div class="section-sub">まずは基本情報だけで登録できます。詳しい内容はあとから追加できます。</div>
+
+    <div class="form-block">
+      <label class="form-label">活動名</label>
+      <input class="form-input" value="${formState.name}" placeholder="例）つきのわ みお"
+        oninput="formState.name=this.value" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">活動者タイプ</label>
+      <div class="filter-row" style="margin-bottom:0;">
+        ${Object.keys(GENRE_AXES).map(g => '
+          <div class="chip ${formState.genre===g?'active':''}" onclick="setFormGenre('${g}')">${g}</div>
+        ').join('')}
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">主な活動ジャンル</label>
+      <input class="form-input" value="${formState.mainTag}" placeholder="例）雑談、ゲーム実況、歌ってみた"
+        oninput="formState.mainTag=this.value" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">主な配信先URL</label>
+      <input class="form-input" value="${formState.sns}" placeholder="https://..."
+        oninput="formState.sns=this.value" />
+    </div>
+
+    <div class="form-block">
+      <label class="form-label">アイコンまたは活動者画像（任意）</label>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div id="avatarPreviewWrap">${previewHtml}</div>
+        <div>
+          <input type="file" accept="image/*" id="avatarFileInput" style="display:none" onchange="handleAvatarFile(this)" />
+          <button type="button" class="chip" style="cursor:pointer;" onclick="document.getElementById('avatarFileInput').click()">画像を選ぶ</button>
+          <div class="section-sub" style="margin:6px 0 0;">画像がなくても、素敵なグラデーションで表示されます</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="go-btn" style="margin-top:20px;" onclick="submitStep1()">
+      <span>🌱 まず掲載する</span>
+      <span class="go-sub">続きはあとから追加できます</span>
+    </button>
+  ';
+}
+function viewRegisterFull(){
   const axes = GENRE_AXES[formState.genre];
   const isEdit = !!state.editingId;
   return `
@@ -1646,6 +1708,70 @@ window.handleAvatarFile = function(input){
   formState.avatarFile = file;
   formState.avatarPreviewUrl = URL.createObjectURL(file);
   render();
+}
+window.submitStep1 = async function(){
+  if (!formState.name.trim()){
+    toast('活動名を入力してください');
+    return;
+  }
+
+  let avatarUrl = formState.avatarUrl || null;
+  if (formState.avatarFile){
+    if (sbClient){
+      try {
+        const file = formState.avatarFile;
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+        const { error: upErr } = await sbClient.storage.from('avatars').upload(path, file);
+        if (upErr) throw upErr;
+        const { data: pub } = sbClient.storage.from('avatars').getPublicUrl(path);
+        avatarUrl = pub.publicUrl;
+      } catch(e){
+        console.error('[ハツミル] avatar upload error', e);
+        toast('画像のアップロードに失敗しましたが、登録は続けます');
+        avatarUrl = null;
+      }
+    } else {
+      avatarUrl = formState.avatarPreviewUrl;
+    }
+  }
+
+  const payload = {
+    name: formState.name,
+    genre: formState.genre,
+    phase: '準備中',
+    main_tag: formState.mainTag || null,
+    bio: null,
+    sns_url: formState.sns || null,
+    radar: {},
+    common_radar: null,
+    avatar_url: avatarUrl,
+  };
+
+  if (!sbClient){
+    const newId = 'c' + (creators.length + 1) + '_' + Date.now();
+    creators.unshift(Object.assign({ id: newId }, payload, { milestones: [] }));
+    addMyCreatorId(newId);
+    finishStep1(newId);
+    return;
+  }
+
+  const { data, error } = await sbClient.from('creators').insert(payload).select().single();
+  if (error){
+    console.error('[ハツミル] creator insert error', error);
+    toast('登録に失敗しました。時間をおいて試してください');
+    return;
+  }
+  creators.unshift(Object.assign({}, data, { milestones: [] }));
+  addMyCreatorId(data.id);
+  finishStep1(data.id);
+}
+function finishStep1(newId){
+  formState = { name:'', genre:'VTuber', phase:'準備中', bio:'', sns:'', mainTag:'', radar: Object.fromEntries(GENRE_AXES['VTuber'].map(a=>[a,3])), commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3 }, avatarFile:null, avatarPreviewUrl:null, avatarUrl:null };
+  state.showRegisterForm = false;
+  toast('🌱 まず掲載されました！プロフィールはあとから育てられます');
+  goTab('home');
+  setTimeout(function(){ openProfile(newId); }, 300);
 }
 window.submitRegistration = async function(){
   if (!formState.name.trim()){
@@ -1771,12 +1897,14 @@ window.openProfile = function(id, skipHistory){
       ${reasons.map(r => `<div>💡 ${r}</div>`).join('')}
     </div>
 
+    ${c.common_radar ? `
     <div class="section-label" style="margin-top:18px;">Style</div>
     <div class="section-title">配信スタイル</div>
     <p class="section-sub" style="margin:-6px 0 14px;">活動の優劣ではなく、この人の配信傾向を表しています。</p>
     ${renderCommonRadar(c.common_radar)}
+    ` : ''}
 
-    <div class="bio">${c.bio}</div>
+    ${c.bio ? `<div class="bio">${c.bio}</div>` : ''}
 
     <div class="info-row">
       <div class="info-item"><span class="info-label">ジャンル</span><span class="info-value">${c.genre}</span></div>
@@ -1784,11 +1912,12 @@ window.openProfile = function(id, skipHistory){
       <div class="info-item"><span class="info-label">活動状況</span><span class="info-value">${c.phase}</span></div>
     </div>
 
-
-        <div class="section-label" style="margin-top:20px;">My Points</div>
+    ${Object.keys(c.radar||{}).length > 0 ? `
+    <div class="section-label" style="margin-top:20px;">My Points</div>
     <div class="section-title">✦ 私の推しポイント</div>
     <p class="section-sub" style="margin:-6px 0 10px;">共通チャートとは別に、本人が自由に選んだこだわりポイントです（相性診断には使用していません）。</p>
     <div class="radar-wrap">${renderRadar(c.radar)}</div>
+    ` : ''}
 
     <div class="section-label" style="margin-top:20px;">Milestones</div>
     <div class="section-title">🌱 はじめて記録</div>

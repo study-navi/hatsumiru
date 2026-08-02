@@ -166,6 +166,27 @@
   .result-actions{ display:flex; gap:8px; }
   .result-actions .go-btn{ flex:1; margin-top:0; }
   .result-actions .save-btn{ flex:1; }
+
+  .pref-summary{
+    background:var(--glass); border:1px solid var(--border); border-radius:16px;
+    padding:14px 16px; margin: 4px 0 18px;
+  }
+  .pref-summary-title{ font-weight:700; font-size:13.5px; margin-bottom:8px; }
+  .pref-summary ul{ list-style:none; margin:0; padding:0; }
+  .pref-summary li{
+    font-size:12.5px; color:var(--muted); line-height:1.8; padding-left:16px; position:relative;
+  }
+  .pref-summary li::before{ content:"・"; position:absolute; left:0; color:var(--aqua); }
+
+  .result-card-top{
+    border: 1px solid var(--aqua-dim);
+    background: linear-gradient(160deg, rgba(110,231,216,0.08), var(--glass));
+  }
+  .result-rank{
+    display:inline-block; font-size:11px; font-weight:700; color:#0B0F1A;
+    background: linear-gradient(90deg, var(--aqua), var(--coral));
+    padding:4px 10px; border-radius:100px; margin-bottom:10px;
+  }
   @media (min-width: 900px){
     .hero-br{ display:none; }
     .hero-section{
@@ -598,36 +619,44 @@ const REASON_TEMPLATES = {
   worldbuildingLevel: { low: "自然体な雰囲気を求める人に合っています。", high: "世界観や作品性を重視する人に合いそうです。" },
 };
 
+const PREFERENCE_SUMMARY = {
+  liveliness: { low: "落ち着いた雰囲気", mid: "にぎやかさはほどほど", high: "にぎやかな配信" },
+  commentInteraction: { low: "視聴に集中したい", mid: "コメント交流はほどほど", high: "コメント交流を重視" },
+  newcomerFriendliness: { low: "深い世界観を重視", mid: "初見の入りやすさはこだわらない", high: "初見でも入りやすい配信" },
+  participationLevel: { low: "通常配信・作品中心", mid: "参加型は少しあってもよい", high: "参加型・企画を重視" },
+  worldbuildingLevel: { low: "自然体な配信", mid: "世界観は少しあるとよい", high: "世界観・作品性を重視" },
+};
+
 const DIAGNOSIS_QUESTIONS = [
   { axis: "liveliness", text: "好きな配信の雰囲気は？", options: [
     { label: "落ち着いて見たい", value: 1 },
     { label: "にぎやかに楽しみたい", value: 5 },
     { label: "どちらも好き", value: 3 },
-    { label: "特に決めていない", value: 3 },
+    { label: "特に決めていない", value: null },
   ]},
   { axis: "commentInteraction", text: "コメントでの交流は？", options: [
     { label: "たくさん交流したい", value: 5 },
     { label: "ときどき反応してほしい", value: 3 },
     { label: "見ることに集中したい", value: 1 },
-    { label: "どちらでもよい", value: 3 },
+    { label: "どちらでもよい", value: null },
   ]},
   { axis: "newcomerFriendliness", text: "初見で入りやすいほうがいい？", options: [
     { label: "とても重視する", value: 5 },
     { label: "ある程度重視する", value: 4 },
     { label: "あまり気にしない", value: 2 },
-    { label: "特に決めていない", value: 3 },
+    { label: "特に決めていない", value: null },
   ]},
   { axis: "participationLevel", text: "参加型や企画への興味は？", options: [
     { label: "一緒に参加したい", value: 5 },
     { label: "企画を見るのが好き", value: 4 },
     { label: "普通の配信を見たい", value: 1 },
-    { label: "どちらでもよい", value: 3 },
+    { label: "どちらでもよい", value: null },
   ]},
   { axis: "worldbuildingLevel", text: "世界観と自然体、どちらが好み？", options: [
     { label: "独自の世界観を楽しみたい", value: 5 },
     { label: "少し世界観があるとよい", value: 4 },
     { label: "自然体の配信が好き", value: 1 },
-    { label: "どちらでもよい", value: 3 },
+    { label: "どちらでもよい", value: null },
   ]},
 ];
 
@@ -1051,8 +1080,23 @@ function computeMatch(creator){
       count++;
     }
   });
-  if (count === 0) return 50;
+  if (count === 0) return null;
   return Math.min(98, Math.round(total / count));
+}
+function hasAnyDiagnosisPreference(){
+  return Object.values(state.diagnosisAnswers).some(v => v != null);
+}
+function describeAnswer(key, value){
+  if (value == null) return null;
+  const t = PREFERENCE_SUMMARY[key];
+  if (value <= 2) return t.low;
+  if (value >= 4) return t.high;
+  return t.mid;
+}
+function buildPreferenceSummary(){
+  return COMMON_RADAR_AXES
+    .map(a => describeAnswer(a.key, state.diagnosisAnswers[a.key]))
+    .filter(Boolean);
 }
 function reasonsFor(creator){
   const cr = creator.common_radar || {};
@@ -1066,8 +1110,9 @@ function reasonsFor(creator){
       else if (creatorVal <= 2) reasons.push(REASON_TEMPLATES[a.key].low);
     }
   });
+  if (creator.is_live) reasons.push('現在配信中なので、すぐに見に行けます。');
   if (reasons.length === 0) reasons.push('あなたの好みに近い活動スタイルです。');
-  return reasons.slice(0,2);
+  return reasons.slice(0,3);
 }
 window.startDiagnosis = function(){
   state.diagnosisStep = 0;
@@ -1109,36 +1154,78 @@ function viewDiagnosis(){
     </div>
   `;
 }
+function renderResultCard(c, score, rank){
+  const anyPref = hasAnyDiagnosisPreference();
+  const reasons = anyPref ? reasonsFor(c) : [recommendReason(c)];
+  const isTop = rank === 0;
+  const rankLabel = rank === 0 ? 'あなたへのおすすめ No.1' : rank === 1 ? 'No.2' : rank === 2 ? 'No.3' : '';
+  return `
+    <div class="result-card ${isTop ? 'result-card-top' : ''}">
+      ${rankLabel ? `<div class="result-rank">${rankLabel}</div>` : ''}
+      <div class="result-head">
+        ${avatarHtml(c, isTop ? 72 : 56)}
+        <div>
+          <div class="name">${c.name}</div>
+          <div class="genre">${c.genre}・${c.phase}</div>
+        </div>
+        ${score != null ? `<div class="match-score" aria-label="相性${score}パーセント">${score}<span style="font-size:11px;">%</span></div>` : ''}
+      </div>
+      <ul class="reason-list">
+        ${reasons.slice(0, isTop ? 3 : 2).map(r => `<li>${r}</li>`).join('')}
+      </ul>
+      ${isTop ? renderCommonRadar(c.common_radar) : ''}
+      <div class="result-actions">
+        <button class="go-btn" onclick="openProfile('${c.id}')"><span>プロフィールを見る</span></button>
+        <button class="save-btn" onclick="toggleSave('${c.id}')">${state.saved.has(c.id) ? '💗 オキニ中' : '🤍 オキニに追加'}</button>
+      </div>
+    </div>
+  `;
+}
 function viewDiagnosisResult(){
-  const scored = creators
-    .map(c => ({ c, score: computeMatch(c) }))
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 6);
+  const anyPref = hasAnyDiagnosisPreference();
+  let scored = creators.map(c => ({ c, score: computeMatch(c) }));
+  if (anyPref){
+    scored = scored.sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
+  }
+  const top3 = scored.slice(0,3);
+  const rest = scored.slice(3,6);
+  const summary = anyPref ? buildPreferenceSummary() : [];
+
   return `
     <div class="section-label">Diagnosis Result</div>
     <div class="section-title">✨ あなたに合う活動者</div>
-    ${scored.length === 0 ? '<div class="empty-note">診断できる活動者がまだいません。</div>' : ''}
-    ${scored.map(({c, score}) => `
-      <div class="result-card">
-        <div class="result-head">
-          ${avatarHtml(c,56)}
-          <div>
-            <div class="name">${c.name}</div>
-            <div class="genre">${c.genre}・${c.phase}</div>
-          </div>
-          <div class="match-score" aria-label="相性${score}パーセント">${score}<span style="font-size:11px;">%</span></div>
-        </div>
-        <ul class="reason-list">
-          ${reasonsFor(c).map(r => `<li>${r}</li>`).join('')}
-        </ul>
-        <div class="result-actions">
-          <button class="go-btn" onclick="openProfile('${c.id}')"><span>プロフィールを見る</span></button>
-          <button class="save-btn" onclick="toggleSave('${c.id}')">${state.saved.has(c.id) ? '💗 オキニ中' : '🤍 オキニに追加'}</button>
-        </div>
+
+    ${!anyPref ? `
+      <p class="section-sub" style="margin:-6px 0 16px;">条件が指定されていないため、幅広い活動者を表示しています。</p>
+    ` : summary.length ? `
+      <div class="pref-summary">
+        <div class="pref-summary-title">あなたはこんな配信が好きそうです</div>
+        <ul>${summary.map(s=>`<li>${s}</li>`).join('')}</ul>
       </div>
-    `).join('')}
-    <button class="hero-btn-secondary" style="margin-top:6px;" onclick="startDiagnosis()">もう一度診断する</button>
+    ` : ''}
+
+    ${top3.length === 0 ? '<div class="empty-note">診断できる活動者がまだいません。</div>' : ''}
+
+    ${top3.map(({c, score}, i) => renderResultCard(c, score, i)).join('')}
+
+    ${rest.length ? `
+      <button class="hero-btn-secondary" id="moreCandidatesBtn" onclick="toggleMoreCandidates()" style="width:100%; margin-bottom:14px;">ほかの候補を見る</button>
+      <div id="moreCandidatesWrap" style="display:none;">
+        ${rest.map(({c, score}) => renderResultCard(c, score, null)).join('')}
+      </div>
+    ` : ''}
+
+    <button class="hero-btn-secondary" style="margin-top:6px;" onclick="startDiagnosis()">もう一度診断する</button>`;
   `;
+}
+
+window.toggleMoreCandidates = function(){
+  const wrap = document.getElementById('moreCandidatesWrap');
+  const btn = document.getElementById('moreCandidatesBtn');
+  if (!wrap || !btn) return;
+  const show = wrap.style.display === 'none';
+  wrap.style.display = show ? 'block' : 'none';
+  btn.textContent = show ? '候補を閉じる' : 'ほかの候補を見る';
 }
 
 // ------- 画面：ホーム -------
@@ -1643,7 +1730,7 @@ window.openProfile = function(id, skipHistory){
   const overlay = document.getElementById('modalOverlay');
   const modal = document.getElementById('modalContent');
   const isSaved = state.saved.has(id);
-  const hasDiagnosis = Object.keys(state.diagnosisAnswers).length > 0;
+  const hasDiagnosis = hasAnyDiagnosisPreference();
   const matchScore = hasDiagnosis ? computeMatch(c) : null;
   const reasons = hasDiagnosis ? reasonsFor(c) : [recommendReason(c)];
 

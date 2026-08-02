@@ -21,7 +21,8 @@
     --muted: #8B96AC;
     --muted-dim: #5B647A;
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
+*{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-text-size-adjust:100%; }
   body{
     background:
       radial-gradient(ellipse 800px 500px at 20% -10%, rgba(110,231,216,0.10), transparent 60%),
@@ -30,29 +31,32 @@
     color: var(--text);
     font-family: 'Noto Sans JP', sans-serif;
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    padding: 24px 12px;
+    overflow-x: hidden;
   }
   .head-font{ font-family: 'Zen Kaku Gothic New', sans-serif; }
   .mono{ font-family: 'JetBrains Mono', monospace; }
 
-  .phone{
+  .app-shell{
     width: 100%;
-    max-width: 430px;
-    background: linear-gradient(180deg, #0D1220 0%, #0A0E18 100%);
-    border-radius: 34px;
-    border: 1px solid var(--border);
-    box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.02);
-    overflow: hidden;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 84px;
     position: relative;
-    min-height: 800px;
   }
-  .statusbar{ height:14px; }
+  @media (min-width: 900px){
+    .app-shell{ max-width: 1200px; padding-bottom: 40px; }
+  }
+  .statusbar{ height:0; }
 
   header.top{
     padding: 18px 20px 6px;
     display:flex; align-items:flex-start; justify-content:space-between;
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(11,15,26,0.85); backdrop-filter: blur(10px);
+  }
+  @media (min-width: 900px){
+    header.top{ padding: 18px 32px; align-items:center; }
   }
   .logo{
     font-family:'Zen Kaku Gothic New', sans-serif;
@@ -69,8 +73,10 @@
   }
   .cp-badge b{ color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:500; }
 
-  main{ padding: 4px 20px 100px; overflow-y:auto; height: 760px; scrollbar-width:none; }
-  main::-webkit-scrollbar{ display:none; }
+  main{ padding: 4px 20px 40px; }
+  @media (min-width: 900px){
+    main{ padding: 24px 32px 60px; max-width: 1200px; margin: 0 auto; }
+  }
 
   .section-label{
     font-size:11px; letter-spacing:0.14em; color: var(--muted-dim);
@@ -82,7 +88,58 @@
   }
   .section-sub{ font-size:12px; color:var(--muted); margin-bottom:12px; }
 
-  .hero-title{
+/* ------- トップのヒーローセクション ------- */
+  .hero-section{
+    padding: 22px 2px 8px;
+    text-align: center;
+  }
+  .hero-brand{
+    font-family:'Zen Kaku Gothic New', sans-serif; font-weight:900; font-size:15px;
+    color: var(--muted); letter-spacing:0.06em; margin-bottom:14px;
+  }
+  .hero-copy{
+    font-family:'Zen Kaku Gothic New', sans-serif; font-weight:900;
+    font-size: clamp(26px, 7vw, 32px); line-height:1.4; margin-bottom:14px;
+  }
+  .hero-copy .accent{
+    background: linear-gradient(90deg, var(--aqua), var(--coral));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero-desc{
+    font-size: 13px; color: var(--muted); line-height:1.7; margin: 0 auto 22px;
+    max-width: 340px;
+  }
+  .hero-actions{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .hero-btn-primary{
+    width:100%; padding: 15px 0; border-radius:100px; border:none;
+    background: linear-gradient(90deg, var(--aqua), var(--coral));
+    color:#0B0F1A; font-weight:700; font-size:14.5px; cursor:pointer;
+    box-shadow: 0 10px 26px rgba(110,231,216,0.16);
+  }
+  .hero-btn-secondary{
+    width:100%; padding: 13px 0; border-radius:100px; border:1px solid var(--border);
+    background: transparent; color:var(--text); font-weight:600; font-size:13.5px; cursor:pointer;
+  }
+  .hero-creator-link{
+    font-size:12px; color:var(--muted); text-decoration:underline; text-underline-offset:3px;
+    background:none; border:none; cursor:pointer; font-family:inherit;
+  }
+  @media (min-width: 900px){
+    .hero-br{ display:none; }
+    .hero-section{
+      display:flex; align-items:center; justify-content:space-between; gap:48px;
+      text-align:left; padding: 40px 2px 30px;
+    }
+    .hero-copy-col{ flex:1; max-width:560px; }
+    .hero-brand{ margin-bottom:18px; }
+    .hero-desc{ margin:0 0 26px; max-width:460px; }
+    .hero-actions{ flex-direction:row; max-width:480px; }
+    .hero-visual-col{
+      flex:1; max-width:380px; display:flex; align-items:center; justify-content:center;
+    }
+  }
+
+    .hero-title{
     font-family:'Zen Kaku Gothic New', sans-serif; font-weight:900; font-size:21px;
     display:flex; align-items:center; gap:9px; margin-bottom:2px;
     background: linear-gradient(90deg, var(--text), var(--coral) 120%);
@@ -175,11 +232,19 @@
   .chip.active{ background: var(--aqua-dim); border-color: var(--aqua); color:#DFFFFA; }
 
   /* 活動者カード */
-  .creator-card{
+.creator-card{
     background: var(--glass); border:1px solid var(--border); border-radius:18px;
     padding: 14px; margin-bottom:10px; display:flex; gap:12px; cursor:pointer; transition:.15s;
   }
   .creator-card:hover{ border-color: var(--aqua-dim); }
+  .creator-grid{ display:block; }
+  @media (min-width: 900px){
+    .creator-grid{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:14px;
+    }
+    .creator-grid .creator-card{ margin-bottom:0; flex-direction:column; text-align:center; }
+    .creator-grid .creator-info{ width:100%; }
+  }
   .avatar{
     width:52px; height:52px; border-radius:100%; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700;
@@ -199,13 +264,13 @@
   }
 
   /* プロフィール(モーダル) */
-  .modal-overlay{
-    position:absolute; inset:0; background: rgba(6,8,14,0.72); backdrop-filter: blur(4px);
-    display:none; align-items:flex-end; z-index:50;
+.modal-overlay{
+    position:fixed; inset:0; background: rgba(6,8,14,0.72); backdrop-filter: blur(4px);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
   }
   .modal-overlay.open{ display:flex; }
   .modal{
-    width:100%; max-height:88%; overflow-y:auto; background: var(--bg-soft);
+    width:100%; max-width:480px; max-height:88vh; overflow-y:auto; background: var(--bg-soft);
     border-radius: 26px 26px 0 0; border: 1px solid var(--border); border-bottom:none;
     padding: 10px 20px 40px; animation: slideup .25s ease;
     scrollbar-width:none;
@@ -271,11 +336,13 @@
   }
 
   /* ボトムナビ */
-  nav.bottom{
-    position:absolute; bottom:0; left:0; right:0;
-    background: rgba(13,18,32,0.85); backdrop-filter: blur(20px);
+nav.bottom{
+    position:fixed; bottom:0; left:0; right:0;
+    max-width: 480px; margin: 0 auto;
+    background: rgba(13,18,32,0.9); backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
     display:flex; padding: 10px 24px 18px;
+    z-index: 40;
   }
   .nav-item{
     flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
@@ -283,6 +350,20 @@
   }
   .nav-item.active{ color: var(--aqua); }
   .nav-icon{ font-size:19px; }
+
+  @media (min-width: 900px){
+    nav.bottom{
+      position:static; max-width:none; margin:0; padding: 0 32px 18px;
+      border-top:none; background:transparent; backdrop-filter:none;
+      justify-content:flex-start; gap: 28px;
+    }
+    .nav-item{
+      flex:none; flex-direction:row; gap:6px; font-size:13px; padding:6px 2px;
+      border-bottom: 2px solid transparent;
+    }
+    .nav-item.active{ border-bottom-color: var(--aqua); }
+    .nav-icon{ font-size:15px; }
+  }
 
   .empty-note{ font-size:12px; color:var(--muted-dim); text-align:center; padding:24px 0; }
 
@@ -335,7 +416,7 @@
 </head>
 <body>
 
-<div class="phone">
+<div class="app-shell">
   <div class="statusbar"></div>
   <header class="top">
     <div>
@@ -777,7 +858,29 @@ window.setRsvp = async function(scheduleId, choice){
 
 function viewHome(){
   const feed = todaysMilestones();
+  const heroCreator = creators[0];
   return `
+    <section class="hero-section">
+      <div class="hero-copy-col">
+        <div class="hero-brand">ハツミル</div>
+        <div class="hero-copy">まだ知らない<br class="hero-br">「<span class="accent">推したい人</span>」と出会う。</div>
+        <p class="hero-desc">知名度や登録者数ではなく、配信の雰囲気や活動スタイルから、あなたに合う活動者を見つけます。</p>
+        <div class="hero-actions">
+          <button class="hero-btn-primary" onclick="goTab('search')">30秒で相性診断</button>
+          <button class="hero-btn-secondary" onclick="goTab('search')">条件から探す</button>
+        </div>
+        <button class="hero-creator-link" onclick="goTab('mypage'); state.showRegisterForm=true; render();">活動者として登録する</button>
+      </div>
+      ${heroCreator ? `
+      <div class="hero-visual-col">
+        <div style="text-align:center;">
+          ${avatarHtml(heroCreator, 64)}
+          <div style="font-weight:700; font-size:13px; margin-top:8px;">${heroCreator.name}</div>
+          ${renderRadar(heroCreator.radar)}
+        </div>
+      </div>` : ''}
+    </section>
+
     <div class="search-bar" style="margin-top:8px" onclick="goTab('search')"><span>🔎</span><input placeholder="活動者を探す" readonly style="cursor:pointer"/></div>
 
     <div class="section-label">Today's はじめて</div>
@@ -794,6 +897,7 @@ function viewHome(){
         </div>
       `).join('')}
     </div>
+    </div>
 
 ${renderStreamSchedules()}
 
@@ -805,7 +909,8 @@ ${renderStreamSchedules()}
         <div class="chip ${state.interest===tag || (tag==='すべて' && !state.interest) ? 'active':''}" onclick="setInterest('${tag}')">${tag}</div>
       `).join('')}
     </div>
-    ${creators.map(c => `
+<div class="creator-grid">
+        ${creators.map(c => `
       <div class="creator-card" onclick="openProfile('${c.id}')">
         ${avatarHtml(c,52)}
         <div class="creator-info">
@@ -852,7 +957,8 @@ function viewSearch(){
     </div>
 
     ${filtered.length===0 ? '<div class="empty-note">条件に合う活動者が見つかりませんでした。</div>' : ''}
-    ${filtered.map(c => `
+<div class="creator-grid">
+        ${filtered.map(c => `
       <div class="creator-card" onclick="openProfile('${c.id}')">
         ${avatarHtml(c,52)}
         <div class="creator-info">
@@ -863,6 +969,7 @@ function viewSearch(){
         </div>
       </div>
     `).join('')}
+    </div>
   `;
 }
 window.setGenreFilter = function(g){ state.genreFilter = g; render(); }
@@ -1195,9 +1302,11 @@ window.openProfile = function(id){
     <button class="save-btn" onclick="toggleSave('${c.id}')">${isSaved ? '✓ 保存済み（タップで解除）' : '🔖 あとで見るに保存'}</button>
   `;
   overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 window.closeProfile = function(){
   document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 window.goToStream = function(name, url){
   if (url){

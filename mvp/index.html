@@ -124,6 +124,48 @@
     font-size:12px; color:var(--muted); text-decoration:underline; text-underline-offset:3px;
     background:none; border:none; cursor:pointer; font-family:inherit;
   }
+
+  /* ------- 相性診断 ------- */
+  .diag-progress{ display:flex; align-items:center; gap:12px; margin: 10px 0 28px; }
+  .diag-back{
+    background:transparent; border:1px solid var(--border); color:var(--text);
+    width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer; flex-shrink:0;
+  }
+  .diag-progress-bar{ flex:1; height:6px; background:var(--glass); border-radius:100px; overflow:hidden; }
+  .diag-progress-fill{ height:100%; background:linear-gradient(90deg,var(--aqua),var(--coral)); border-radius:100px; transition:width .3s; }
+  .diag-progress-text{ font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace; flex-shrink:0; }
+  .diag-question{
+    font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:20px;
+    line-height:1.5; margin: 0 0 26px; text-align:center;
+  }
+  .diag-options{ display:flex; flex-direction:column; gap:10px; }
+  .diag-option{
+    width:100%; padding:16px 20px; border-radius:16px; border:1px solid var(--border);
+    background:var(--glass); color:var(--text); font-size:14.5px; font-weight:600;
+    text-align:left; cursor:pointer; transition:.15s;
+  }
+  .diag-option:hover{ border-color:var(--aqua-dim); background:rgba(110,231,216,0.08); }
+  .diag-option:focus-visible{ outline:2px solid var(--aqua); outline-offset:2px; }
+
+  .result-card{
+    background:var(--glass); border:1px solid var(--border); border-radius:18px;
+    padding:16px; margin-bottom:14px;
+  }
+  .result-head{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .result-head .name{ font-weight:700; font-size:15px; }
+  .result-head .genre{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .match-score{
+    margin-left:auto; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:22px;
+    color:var(--aqua); flex-shrink:0;
+  }
+  .reason-list{ list-style:none; margin:0 0 12px; padding:0; }
+  .reason-list li{
+    font-size:12.5px; color:var(--muted); line-height:1.7; padding-left:16px; position:relative;
+  }
+  .reason-list li::before{ content:"・"; position:absolute; left:0; color:var(--coral); }
+  .result-actions{ display:flex; gap:8px; }
+  .result-actions .go-btn{ flex:1; margin-top:0; }
+  .result-actions .save-btn{ flex:1; }
   @media (min-width: 900px){
     .hero-br{ display:none; }
     .hero-section{
@@ -476,6 +518,56 @@ const GENRE_AXES = {
   "配信者":   ["企画力", "トーク", "ゲーム性", "コメント重視"],
 };
 
+// ------- 相性診断：共通5軸（能力評価ではなく「活動スタイル」を表す） -------
+const COMMON_RADAR_AXES = [
+  { key: "liveliness", label: "にぎやかさ", low: "落ち着いた雰囲気", high: "テンポが速く、にぎやか" },
+  { key: "commentInteraction", label: "コメント交流", low: "視聴することが中心", high: "コメントとの会話を重視" },
+  { key: "newcomerFriendliness", label: "初見の入りやすさ", low: "既存の世界観を深く楽しむ", high: "初見でも入りやすい" },
+  { key: "participationLevel", label: "参加型・企画性", low: "通常配信・作品中心", high: "参加型・企画を重視" },
+  { key: "worldbuildingLevel", label: "世界観・作品性", low: "自然体・日常的", high: "独自世界や作品性を重視" },
+];
+
+const REASON_TEMPLATES = {
+  liveliness: { low: "落ち着いた雰囲気を好む点が一致しています。", high: "にぎやかな配信を楽しみたい気分と合っています。" },
+  commentInteraction: { low: "じっくり視聴できる距離感が合っています。", high: "コメント交流を大切にする活動者です。" },
+  newcomerFriendliness: { low: "深く作り込まれた世界観をじっくり楽しめます。", high: "初見でも入りやすい配信スタイルです。" },
+  participationLevel: { low: "作品や配信そのものをじっくり楽しめます。", high: "参加型や企画を楽しみたい人におすすめです。" },
+  worldbuildingLevel: { low: "自然体な雰囲気を求める人に合っています。", high: "世界観や作品性を重視する人に合いそうです。" },
+};
+
+const DIAGNOSIS_QUESTIONS = [
+  { axis: "liveliness", text: "好きな配信の雰囲気は？", options: [
+    { label: "落ち着いて見たい", value: 1 },
+    { label: "にぎやかに楽しみたい", value: 5 },
+    { label: "どちらも好き", value: 3 },
+    { label: "特に決めていない", value: 3 },
+  ]},
+  { axis: "commentInteraction", text: "コメントでの交流は？", options: [
+    { label: "たくさん交流したい", value: 5 },
+    { label: "ときどき反応してほしい", value: 3 },
+    { label: "見ることに集中したい", value: 1 },
+    { label: "どちらでもよい", value: 3 },
+  ]},
+  { axis: "newcomerFriendliness", text: "初見で入りやすいほうがいい？", options: [
+    { label: "とても重視する", value: 5 },
+    { label: "ある程度重視する", value: 4 },
+    { label: "あまり気にしない", value: 2 },
+    { label: "特に決めていない", value: 3 },
+  ]},
+  { axis: "participationLevel", text: "参加型や企画への興味は？", options: [
+    { label: "一緒に参加したい", value: 5 },
+    { label: "企画を見るのが好き", value: 4 },
+    { label: "普通の配信を見たい", value: 1 },
+    { label: "どちらでもよい", value: 3 },
+  ]},
+  { axis: "worldbuildingLevel", text: "世界観と自然体、どちらが好み？", options: [
+    { label: "独自の世界観を楽しみたい", value: 5 },
+    { label: "少し世界観があるとよい", value: 4 },
+    { label: "自然体の配信が好き", value: 1 },
+    { label: "どちらでもよい", value: 3 },
+  ]},
+];
+
 const CHEER_OPTIONS = [
   { emoji: "🌸", label: "初配信おめでとう" },
   { emoji: "🎉", label: "初コラボおめでとう" },
@@ -583,6 +675,8 @@ let state = {
   genreFilter: "すべて",
   searchQuery: "",
   saved: loadOshiIds(),
+  diagnosisStep: 0,
+  diagnosisAnswers: {},
   cheeredMilestones: new Set(),
   cpTotal: 128,
   showRegisterForm: false,
@@ -809,6 +903,115 @@ function renderRadar(axesObj){
   </svg>`;
 }
 
+// ------- 相性診断：計算・画面 -------
+function scoreForDiff(diff){
+  const d = Math.round(Math.abs(diff));
+  if (d<=0) return 100;
+  if (d===1) return 80;
+  if (d===2) return 60;
+  if (d===3) return 40;
+  return 20;
+}
+function computeMatch(creator){
+  const cr = creator.common_radar || {};
+  let total = 0, count = 0;
+  COMMON_RADAR_AXES.forEach(a => {
+    const userVal = state.diagnosisAnswers[a.key];
+    const creatorVal = cr[a.key];
+    if (userVal != null && creatorVal != null){
+      total += scoreForDiff(userVal - creatorVal);
+      count++;
+    }
+  });
+  if (count === 0) return 50;
+  return Math.min(98, Math.round(total / count));
+}
+function reasonsFor(creator){
+  const cr = creator.common_radar || {};
+  const reasons = [];
+  COMMON_RADAR_AXES.forEach(a => {
+    const userVal = state.diagnosisAnswers[a.key];
+    const creatorVal = cr[a.key];
+    if (userVal == null || creatorVal == null) return;
+    if (Math.abs(userVal - creatorVal) <= 1){
+      if (creatorVal >= 4) reasons.push(REASON_TEMPLATES[a.key].high);
+      else if (creatorVal <= 2) reasons.push(REASON_TEMPLATES[a.key].low);
+    }
+  });
+  if (reasons.length === 0) reasons.push('あなたの好みに近い活動スタイルです。');
+  return reasons.slice(0,2);
+}
+window.startDiagnosis = function(){
+  state.diagnosisStep = 0;
+  state.diagnosisAnswers = {};
+  state.tab = 'diagnosis';
+  render();
+}
+window.answerDiagnosis = function(axis, value){
+  state.diagnosisAnswers[axis] = value;
+  state.diagnosisStep++;
+  render();
+}
+window.backDiagnosis = function(){
+  if (state.diagnosisStep > 0){
+    state.diagnosisStep--;
+    render();
+  } else {
+    goTab('home');
+  }
+}
+function viewDiagnosis(){
+  if (state.diagnosisStep >= DIAGNOSIS_QUESTIONS.length){
+    return viewDiagnosisResult();
+  }
+  const q = DIAGNOSIS_QUESTIONS[state.diagnosisStep];
+  const stepNum = state.diagnosisStep + 1;
+  return `
+    <div class="diag-progress">
+      <button class="diag-back" onclick="backDiagnosis()" aria-label="戻る">←</button>
+      <div class="diag-progress-bar"><div class="diag-progress-fill" style="width:${(stepNum/DIAGNOSIS_QUESTIONS.length)*100}%"></div></div>
+      <span class="diag-progress-text">${stepNum} / ${DIAGNOSIS_QUESTIONS.length}</span>
+    </div>
+    <div class="diag-question">${q.text}</div>
+    <div class="diag-options" role="group" aria-label="${q.text}">
+      ${q.options.map(o => `
+        <button class="diag-option" onclick="answerDiagnosis('${q.axis}', ${o.value})">${o.label}</button>
+      `).join('')}
+    </div>
+  `;
+}
+function viewDiagnosisResult(){
+  const scored = creators
+    .map(c => ({ c, score: computeMatch(c) }))
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 6);
+  return `
+    <div class="section-label">Diagnosis Result</div>
+    <div class="section-title">✨ あなたに合う活動者</div>
+    ${scored.length === 0 ? '<div class="empty-note">診断できる活動者がまだいません。</div>' : ''}
+    ${scored.map(({c, score}) => `
+      <div class="result-card">
+        <div class="result-head">
+          ${avatarHtml(c,56)}
+          <div>
+            <div class="name">${c.name}</div>
+            <div class="genre">${c.genre}・${c.phase}</div>
+          </div>
+          <div class="match-score" aria-label="相性${score}パーセント">${score}<span style="font-size:11px;">%</span></div>
+        </div>
+        <ul class="reason-list">
+          ${reasonsFor(c).map(r => `<li>${r}</li>`).join('')}
+        </ul>
+        <div class="result-actions">
+          <button class="go-btn" onclick="openProfile('${c.id}')"><span>プロフィールを見る</span></button>
+          <button class="save-btn" onclick="toggleSave('${c.id}')">${state.saved.has(c.id) ? '💗 オキニ中' : '🤍 オキニに追加'}</button>
+        </div>
+      </div>
+    `).join('')}
+    <button class="hero-btn-secondary" style="margin-top:6px;" onclick="startDiagnosis()">もう一度診断する</button>
+  `;
+}
+
 // ------- 画面：ホーム -------
 // ------- 配信予定への意思表示 -------
 function formatScheduleTime(iso){
@@ -880,7 +1083,7 @@ function viewHome(){
         <div class="hero-copy">まだ知らない<br class="hero-br">「<span class="accent">推したい人</span>」と出会う。</div>
         <p class="hero-desc">知名度や登録者数ではなく、配信の雰囲気や活動スタイルから、あなたに合う活動者を見つけます。</p>
         <div class="hero-actions">
-          <button class="hero-btn-primary" onclick="goTab('search')">30秒で相性診断</button>
+          <button class="hero-btn-primary" onclick="startDiagnosis()">30秒で相性診断</button>
           <button class="hero-btn-secondary" onclick="goTab('search')">条件から探す</button>
         </div>
         <button class="hero-creator-link" onclick="goTab('mypage'); state.showRegisterForm=true; render();">活動者として登録する</button>
@@ -1376,6 +1579,7 @@ function render(){
   const main = document.getElementById('mainView');
   if (state.tab === 'home') main.innerHTML = viewHome();
   else if (state.tab === 'search') main.innerHTML = viewSearch();
+  else if (state.tab === 'diagnosis') main.innerHTML = viewDiagnosis();
   else if (state.tab === 'register') main.innerHTML = viewRegister();
   else if (state.tab === 'saved') main.innerHTML = viewSaved();
   else if (state.tab === 'mypage') main.innerHTML = viewMyPage();

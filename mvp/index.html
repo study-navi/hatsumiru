@@ -990,7 +990,7 @@ function renderRadar(axesObj){
   let spokes = "";
   axes.forEach((_,i)=>{
     const [x,y] = gridPoint(i, r);
-    spokes += `<line x1="${half}" y1="${half}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+    spokes += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
   });
 
   const dataPts = axes.map((a,i)=> point(i, axesObj[a]).join(',')).join(' ');

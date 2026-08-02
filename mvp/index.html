@@ -452,7 +452,8 @@ nav.bottom{
     color: var(--muted-dim); font-size:10.5px; cursor:pointer; transition:.15s;
   }
   .nav-item.active{ color: var(--aqua); }
-  .nav-icon{ font-size:19px; }
+  .nav-icon{ display:flex; align-items:center; justify-content:center; }
+  .nav-icon svg{ width:20px; height:20px; display:block; }
 
   @media (min-width: 900px){
     nav.bottom{
@@ -465,7 +466,7 @@ nav.bottom{
       border-bottom: 2px solid transparent;
     }
     .nav-item.active{ border-bottom-color: var(--aqua); }
-    .nav-icon{ font-size:15px; }
+    .nav-icon svg{ width:16px; height:16px; }
   }
 
   .empty-note{ font-size:12px; color:var(--muted-dim); text-align:center; padding:24px 0; }
@@ -537,10 +538,11 @@ nav.bottom{
   <main id="mainView"></main>
 
   <nav class="bottom">
-    <div class="nav-item active" data-tab="home"><span class="nav-icon">✨</span>ホーム</div>
-    <div class="nav-item" data-tab="search"><span class="nav-icon">🔍</span>検索</div>
-    <div class="nav-item" data-tab="saved"><span class="nav-icon">💗</span>オキニ</div>
-    <div class="nav-item" data-tab="mypage"><span class="nav-icon">👤</span>マイページ</div>
+<div class="nav-item active" data-tab="home"><span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9v-5.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V20h2.5a1 1 0 0 0 1-1v-9"/></svg></span>ホーム</div>
+    <div class="nav-item" data-tab="search"><span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>見つける</div>
+    <div class="nav-item" data-tab="diagnosis"><span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.7 9.3 12.8 12.8 9.3 14.7 11.2 11.2 14.7 9.3Z"/></svg></span>診断</div>
+    <div class="nav-item" data-tab="saved"><span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.35-9.5-8.5C.7 8 2 4.5 5.5 4c2-.28 3.7.8 4.5 2.2C10.8 4.8 12.5 3.72 14.5 4 18 4.5 19.3 8 17.5 11.5 15 15.65 12 20 12 20Z"/></svg></span>オキニ</div>
+    <div class="nav-item" data-tab="mypage"><span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg></span>マイページ</div>
   </nav>
 
   <div class="modal-overlay" id="modalOverlay">
@@ -1071,6 +1073,7 @@ window.startDiagnosis = function(){
   state.diagnosisStep = 0;
   state.diagnosisAnswers = {};
   state.tab = 'diagnosis';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.tab==='diagnosis'));
   render();
 }
 window.answerDiagnosis = function(axis, value){
@@ -1774,7 +1777,10 @@ window.goTab = function(tab){
   render();
 }
 document.querySelectorAll('.nav-item').forEach(el=>{
-  el.addEventListener('click', ()=> goTab(el.dataset.tab));
+  el.addEventListener('click', ()=> {
+    if (el.dataset.tab === 'diagnosis') startDiagnosis();
+    else goTab(el.dataset.tab);
+  });
 });
 document.getElementById('modalOverlay').addEventListener('click', (e)=>{
   if (e.target.id === 'modalOverlay') closeProfile();

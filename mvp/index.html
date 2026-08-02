@@ -389,19 +389,6 @@
   }
   .info-label{ display:block; font-size:10px; color:var(--muted); margin-bottom:2px; }
   .info-value{ display:block; font-size:13px; font-weight:700; }
-  .intro30-wrap{ cursor:pointer; margin: 6px 0 4px; }
-  .intro30-poster{
-    width:100%; aspect-ratio: 16/9; border-radius:16px; position:relative;
-    display:flex; align-items:center; justify-content:center;
-    border:1px solid var(--border); transition: box-shadow .2s;
-  }
-  .intro30-poster.playing{ box-shadow: 0 0 0 3px var(--aqua-dim); }
-  .intro30-play{
-    width:56px; height:56px; border-radius:50%; border:none;
-    background:rgba(11,15,26,0.55); color:#fff; font-size:20px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .intro30-note{ font-size:11px; color:var(--muted); margin-top:6px; text-align:center; }
 
   .radar-wrap{
     display:flex; justify-content:center; margin: 14px 0 6px;
@@ -785,7 +772,7 @@ let state = {
 
 // 活動者登録フォームの状態
 let formState = {
-  name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "", introVideoUrl: "",
+  name: "", genre: "VTuber", phase: "準備中", bio: "", sns: "",
   radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])),
   commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3 },
   avatarFile: null, avatarPreviewUrl: null, avatarUrl: null,
@@ -1523,7 +1510,7 @@ window.startEdit = function(id){
   if (!c) return;
   formState = {
     name: c.name, genre: c.genre, phase: c.phase,
-    bio: c.bio || "", sns: c.sns_url || "", introVideoUrl: c.intro_video_url || "",
+    bio: c.bio || "", sns: c.sns_url || "",
     radar: { ...c.radar },
     commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3, ...(c.common_radar||{}) },
     avatarFile: null, avatarPreviewUrl: null, avatarUrl: c.avatar_url || null,
@@ -1598,12 +1585,7 @@ function viewRegister(){
       <input class="form-input" value="${formState.sns}" placeholder="https://..."
         oninput="formState.sns=this.value" />
     </div>
-    <div class="form-block">
-      <label class="form-label">30秒紹介（任意）</label>
-      <p class="section-sub" style="margin:-4px 0 8px;">顔出し動画でなくても登録できます（立ち絵＋声、一枚絵＋声、切り抜き、自己紹介動画、Shortsなど）。</p>
-      <input class="form-input" value="${formState.introVideoUrl}" placeholder="https://www.youtube.com/watch?v=..."
-        oninput="formState.introVideoUrl=this.value" />
-    </div>
+
 
     <div class="form-block">
       <label class="form-label">配信スタイル（診断で使われます）</label>
@@ -1695,7 +1677,6 @@ let avatarUrl = formState.avatarUrl || null;
     phase: formState.phase,
     bio: formState.bio || "はじめまして、よろしくお願いします。",
     sns_url: formState.sns || null,
-    intro_video_url: formState.introVideoUrl || null,
     radar: {...formState.radar},
     common_radar: {...formState.commonRadar},
     avatar_url: avatarUrl,
@@ -1739,7 +1720,7 @@ let avatarUrl = formState.avatarUrl || null;
     toast('🌱 登録が完了しました！');
   }
 
-  formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", introVideoUrl:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])), commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3 }, avatarFile:null, avatarPreviewUrl:null, avatarUrl:null };
+  formState = { name:"", genre:"VTuber", phase:"準備中", bio:"", sns:"", radar: Object.fromEntries(GENRE_AXES["VTuber"].map(a=>[a,3])), commonRadar: { liveliness:3, commentInteraction:3, newcomerFriendliness:3, participationLevel:3, worldbuildingLevel:3 }, avatarFile:null, avatarPreviewUrl:null, avatarUrl:null };
   state.showRegisterForm = false;
   goTab('home');
   setTimeout(()=> openProfile(newId), 300);
@@ -1803,9 +1784,6 @@ window.openProfile = function(id, skipHistory){
       <div class="info-item"><span class="info-label">活動状況</span><span class="info-value">${c.phase}</span></div>
     </div>
 
-<div class="section-label" style="margin-top:20px;">Intro</div>
-    <div class="section-title">🎬 30秒でこの人を知る</div>
-    ${renderIntro30(c)}
 
         <div class="section-label" style="margin-top:20px;">My Points</div>
     <div class="section-title">✦ 私の推しポイント</div>
@@ -1840,48 +1818,6 @@ window.openProfile = function(id, skipHistory){
   if (!skipHistory){
     history.pushState({ profileId: id }, '', '#profile/' + id);
   }
-}
-function extractYouTubeId(url){
-  if (!url) return null;
-  const patterns = [
-    /youtube\.com\/watch\?v=([\w-]{11})/,
-    /youtu\.be\/([\w-]{11})/,
-    /youtube\.com\/shorts\/([\w-]{11})/,
-  ];
-  for (const p of patterns){
-    const m = url.match(p);
-    if (m) return m[1];
-  }
-  return null;
-}
-function renderIntro30(c){
-  const url = c.intro_video_url;
-  if (!url){
-    return '<div class="empty-note">30秒紹介はまだ登録されていません。</div>';
-  }
-  const ytId = extractYouTubeId(url);
-  if (ytId){
-    return '<div class="intro30-wrap">'
-      + '<div class="intro30-poster" style="background-image:url(\'https://img.youtube.com/vi/' + ytId + '/hqdefault.jpg\'); background-size:cover; background-position:center;" onclick="playIntro30Youtube(this, \'' + ytId + '\')">'
-      + '<button class="intro30-play" aria-label="30秒紹介を再生" type="button">▶</button></div>'
-      + '<p class="intro30-note">タップして再生（自動再生はしません）</p></div>';
-  }
-  return '<div class="intro30-wrap">'
-    + '<a class="hero-btn-secondary" style="display:block; text-align:center; text-decoration:none; box-sizing:border-box;" href="' + url + '" target="_blank" rel="noopener">▶ 動画を見る</a></div>';
-}
-window.playIntro30Youtube = function(el, ytId){
-  const iframe = document.createElement('iframe');
-  iframe.width = '100%';
-  iframe.height = '100%';
-  iframe.style.border = 'none';
-  iframe.style.position = 'absolute';
-  iframe.style.inset = '0';
-  iframe.allow = 'autoplay; encrypted-media';
-  iframe.src = 'https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1';
-  el.innerHTML = '';
-  el.style.position = 'relative';
-  el.appendChild(iframe);
-  el.onclick = null;
 }
 window.closeProfile = function(){
   document.getElementById('modalOverlay').classList.remove('open');

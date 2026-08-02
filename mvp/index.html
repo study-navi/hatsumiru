@@ -333,12 +333,26 @@
   .growth-line{
     font-size: 11.5px; color: var(--aqua); margin-top: 8px; font-family:'JetBrains Mono',monospace;
   }
-  .reason-box{
+.reason-box{
     margin: 14px 0; padding: 12px 14px; border-radius:14px;
     background: linear-gradient(120deg, rgba(255,147,168,0.10), rgba(110,231,216,0.08));
     border: 1px solid rgba(255,147,168,0.25);
-    font-size:12.5px; color:#FFE3E9; display:flex; gap:8px; align-items:flex-start;
+    font-size:12.5px; color:#FFE3E9; display:flex; flex-direction:column; gap:6px;
   }
+  .profile-match{
+    display:flex; align-items:baseline; gap:8px; margin: 10px 0 4px;
+  }
+  .profile-match-score{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:32px; color:var(--aqua);
+  }
+  .profile-match-label{ font-size:12px; color:var(--muted); }
+  .info-row{ display:flex; gap:8px; margin: 14px 0; flex-wrap:wrap; }
+  .info-item{
+    flex:1; min-width:90px; background:var(--glass); border:1px solid var(--border);
+    border-radius:12px; padding:8px 10px;
+  }
+  .info-label{ display:block; font-size:10px; color:var(--muted); margin-bottom:2px; }
+  .info-value{ display:block; font-size:13px; font-weight:700; }
 
   .radar-wrap{
     display:flex; justify-content:center; margin: 14px 0 6px;
@@ -1567,11 +1581,23 @@ let avatarUrl = formState.avatarUrl || null;
 }
 
 // ------- プロフィールモーダル -------
+function platformLabel(c){
+  const url = c.sns_url || '';
+  if (/youtube|youtu\.be/i.test(url)) return 'YouTube';
+  if (/twitch/i.test(url)) return 'Twitch';
+  if (/iriam/i.test(url)) return 'IRIAM';
+  if (/twitter|x\.com/i.test(url)) return 'X（Twitter）';
+  if (url) return 'その他';
+  return '未設定';
+}
 window.openProfile = function(id){
   const c = creators.find(x=>x.id===id);
   const overlay = document.getElementById('modalOverlay');
   const modal = document.getElementById('modalContent');
   const isSaved = state.saved.has(id);
+  const hasDiagnosis = Object.keys(state.diagnosisAnswers).length > 0;
+  const matchScore = hasDiagnosis ? computeMatch(c) : null;
+  const reasons = hasDiagnosis ? reasonsFor(c) : [recommendReason(c)];
 
   modal.innerHTML = `
     <div class="modal-handle"></div>
@@ -1585,9 +1611,18 @@ window.openProfile = function(id){
       </div>
     </div>
 
+    ${matchScore != null ? `
+      <div class="profile-match">
+        <div class="profile-match-score">${matchScore}<span style="font-size:14px;">%</span></div>
+        <div class="profile-match-label">あなたとの相性</div>
+      </div>
+    ` : ''}
+
     ${growthLine(c) ? `<div class="growth-line">${growthLine(c)}</div>` : ''}
 
-    <div class="reason-box">💡 <span>${recommendReason(c)}</span></div>
+    <div class="reason-box">
+      ${reasons.map(r => `<div>💡 ${r}</div>`).join('')}
+    </div>
 
     <div class="section-label" style="margin-top:18px;">Style</div>
     <div class="section-title">配信スタイル</div>
@@ -1595,6 +1630,12 @@ window.openProfile = function(id){
     ${renderCommonRadar(c.common_radar)}
 
     <div class="bio">${c.bio}</div>
+
+    <div class="info-row">
+      <div class="info-item"><span class="info-label">ジャンル</span><span class="info-value">${c.genre}</span></div>
+      <div class="info-item"><span class="info-label">配信媒体</span><span class="info-value">${platformLabel(c)}</span></div>
+      <div class="info-item"><span class="info-label">活動状況</span><span class="info-value">${c.phase}</span></div>
+    </div>
 
     <div class="section-label" style="margin-top:20px;">My Points</div>
     <div class="section-title">✦ 私の推しポイント</div>

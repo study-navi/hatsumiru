@@ -346,6 +346,25 @@
     border-radius: 20px; padding: 10px 0;
   }
 
+  .radar-common-wrap{
+    width:100%; max-width:310px; margin:0 auto;
+    background: radial-gradient(ellipse at center, rgba(110,231,216,0.08), transparent 70%);
+    border-radius: 20px; padding: 14px 0;
+  }
+  @media (min-width: 900px){
+    .radar-common-wrap{ max-width:420px; }
+  }
+  .radar-legend{
+    list-style:none; margin:14px 0 6px; padding:0;
+    display:grid; grid-template-columns: 1fr; gap:8px;
+  }
+  .radar-legend li{
+    display:flex; flex-direction:column; gap:2px;
+    padding:8px 12px; background:var(--glass); border:1px solid var(--border); border-radius:12px;
+  }
+  .radar-legend-label{ font-size:12.5px; font-weight:700; color:var(--text); }
+  .radar-legend-range{ font-size:10.5px; color:var(--muted); }
+
   .bio{ font-size:13px; color:var(--muted); line-height:1.7; margin: 6px 0 4px; }
 
   .timeline{ margin-top: 6px; }
@@ -901,6 +920,63 @@ function renderRadar(axesObj){
     <polygon points="${dataPts}" fill="rgba(110,231,216,0.18)" stroke="#6EE7D8" stroke-width="2"/>
     ${dots}${labels}
   </svg>`;
+}
+
+// ------- 大型・共通レーダーチャート（配信スタイル） -------
+function renderCommonRadar(commonObj){
+  const axes = COMMON_RADAR_AXES;
+  const n = axes.length;
+  const r = 105, pad = 70, half = r + pad;
+  const svgSize = half * 2;
+  const maxVal = 5;
+
+  function angleFor(i){ return (Math.PI*2*i/n) - Math.PI/2; }
+  function point(i, val){
+    const a = angleFor(i);
+    const dist = (val/maxVal) * r;
+    return [half + Math.cos(a)*dist, half + Math.sin(a)*dist];
+  }
+  function gridPoint(i, dist){
+    const a = angleFor(i);
+    return [half + Math.cos(a)*dist, half + Math.sin(a)*dist];
+  }
+
+  let grids = "";
+  [0.25,0.5,0.75,1].forEach(f=>{
+    const pts = axes.map((_,i)=> gridPoint(i, r*f).join(',')).join(' ');
+    grids += `<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  });
+  let spokes = "";
+  axes.forEach((_,i)=>{
+    const [x,y] = gridPoint(i, r);
+    spokes += `<line x1="${half}" y1="${half}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  });
+
+  const vals = axes.map(a => (commonObj && commonObj[a.key] != null) ? commonObj[a.key] : 3);
+  const dataPts = axes.map((a,i)=> point(i, vals[i]).join(',')).join(' ');
+
+  let dots = "", labels = "";
+  axes.forEach((a,i)=>{
+    const [px,py] = point(i, vals[i]);
+    dots += `<circle cx="${px}" cy="${py}" r="4.5" fill="#6EE7D8" style="filter:drop-shadow(0 0 5px #6EE7D8)"/>`;
+    const [lx,ly] = gridPoint(i, r+38);
+    labels += `<text x="${lx}" y="${ly}" fill="#F2F5FA" font-size="13" font-weight="700" text-anchor="middle" dominant-baseline="middle" font-family="Noto Sans JP">${a.label}</text>`;
+  });
+
+  const srText = axes.map((a,i)=> `${a.label}${vals[i]}`).join('、');
+
+  return `
+    <div class="radar-common-wrap">
+      <svg width="100%" viewBox="0 0 ${svgSize} ${svgSize}" style="overflow:visible" role="img" aria-label="配信スタイルチャート：${srText}">
+        ${grids}${spokes}
+        <polygon points="${dataPts}" fill="rgba(110,231,216,0.20)" stroke="#6EE7D8" stroke-width="2.5"/>
+        ${dots}${labels}
+      </svg>
+    </div>
+    <ul class="radar-legend">
+      ${axes.map((a,i)=>`<li><span class="radar-legend-label">${a.label} ${vals[i]}</span><span class="radar-legend-range">${a.low} ←→ ${a.high}</span></li>`).join('')}
+    </ul>
+  `;
 }
 
 // ------- 相性診断：計算・画面 -------
@@ -1513,10 +1589,16 @@ window.openProfile = function(id){
 
     <div class="reason-box">💡 <span>${recommendReason(c)}</span></div>
 
+    <div class="section-label" style="margin-top:18px;">Style</div>
+    <div class="section-title">配信スタイル</div>
+    <p class="section-sub" style="margin:-6px 0 14px;">活動の優劣ではなく、この人の配信傾向を表しています。</p>
+    ${renderCommonRadar(c.common_radar)}
+
     <div class="bio">${c.bio}</div>
 
-    <div class="section-label" style="margin-top:18px;">Radar</div>
-    <div class="section-title">相性チャート</div>
+    <div class="section-label" style="margin-top:20px;">My Points</div>
+    <div class="section-title">✦ 私の推しポイント</div>
+    <p class="section-sub" style="margin:-6px 0 10px;">共通チャートとは別に、本人が自由に選んだこだわりポイントです（相性診断には使用していません）。</p>
     <div class="radar-wrap">${renderRadar(c.radar)}</div>
 
     <div class="section-label" style="margin-top:20px;">Milestones</div>

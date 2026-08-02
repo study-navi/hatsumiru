@@ -378,6 +378,11 @@ nav.bottom{
     padding: 10px 0; border-top: 1px solid var(--border);
   }
   .my-creator-row:first-of-type{ border-top:none; }
+  .live-badge{
+    display:inline-block; font-size:10px; font-weight:700; color:var(--coral);
+    background:rgba(255,147,168,0.14); border:1px solid var(--coral-dim);
+    padding:2px 7px; border-radius:100px; vertical-align:middle; margin-left:4px;
+  }
   .edit-btn{
     flex-shrink:0; padding: 7px 14px; border-radius:100px; font-size:11.5px;
     background:transparent; color:var(--aqua); border:1px solid var(--aqua-dim); cursor:pointer;
@@ -431,7 +436,7 @@ nav.bottom{
   <nav class="bottom">
     <div class="nav-item active" data-tab="home"><span class="nav-icon">✨</span>ホーム</div>
     <div class="nav-item" data-tab="search"><span class="nav-icon">🔍</span>検索</div>
-    <div class="nav-item" data-tab="saved"><span class="nav-icon">🔖</span>あとで見る</div>
+    <div class="nav-item" data-tab="saved"><span class="nav-icon">💗</span>オキニ</div>
     <div class="nav-item" data-tab="mypage"><span class="nav-icon">👤</span>マイページ</div>
   </nav>
 
@@ -553,6 +558,15 @@ function addMyCreatorId(id){
   }
 }
 // 配信予定への意思表示（連打による水増し防止のための端末識別）
+// 「オキニ」の永続化（この端末に保存。ログイン不要の無料実装）
+const OSHI_KEY = 'hatsumiru_oshi_ids';
+function loadOshiIds(){
+  try { return new Set(JSON.parse(localStorage.getItem(OSHI_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveOshiIds(set){
+  localStorage.setItem(OSHI_KEY, JSON.stringify([...set]));
+}
 function getDeviceId(){
   let id = localStorage.getItem('hatsumiru_device_id');
   if (!id){
@@ -568,7 +582,7 @@ let state = {
   moodFilter: null,
   genreFilter: "すべて",
   searchQuery: "",
-  saved: new Set(),
+  saved: loadOshiIds(),
   cheeredMilestones: new Set(),
   cpTotal: 128,
   showRegisterForm: false,
@@ -916,7 +930,7 @@ ${renderStreamSchedules()}
         <div class="creator-info">
           <div class="name">${c.name}</div>
           <div class="genre">${c.genre}</div>
-          <span class="phase-badge">${c.phase}</span>
+          <span class="phase-badge">${c.phase}</span>${c.is_live ? '<span class="live-badge">🔴 配信中</span>' : ''}
           <div class="reason-line">💡 ${recommendReason(c)}</div>
         </div>
       </div>
@@ -964,7 +978,7 @@ function viewSearch(){
         <div class="creator-info">
           <div class="name">${c.name}</div>
           <div class="genre">${c.genre}</div>
-          <span class="phase-badge">${c.phase}</span>
+          <span class="phase-badge">${c.phase}</span>${c.is_live ? '<span class="live-badge">🔴 配信中</span>' : ''}
           <div class="reason-line">💡 ${recommendReason(c)}</div>
         </div>
       </div>
@@ -987,26 +1001,26 @@ window.setSearchQuery = function(v){
   }
 }
 
-// ------- 画面：あとで見る -------
+// ------- 画面：オキニ -------
 function viewSaved(){
   const list = creators.filter(c => state.saved.has(c.id));
   if (list.length === 0){
     return `
-      <div class="section-label">Saved</div>
-      <div class="section-title">🔖 あとで見る</div>
-      <div class="empty-note">気になった活動者を保存すると、ここに表示されます。</div>
+      <div class="section-label">My Oki</div>
+      <div class="section-title">💗 オキニ</div>
+      <div class="empty-note">気になった活動者を「オキニにする」と、ここに表示されます。</div>
     `;
   }
   return `
-    <div class="section-label">Saved</div>
-    <div class="section-title">🔖 あとで見る</div>
+    <div class="section-label">My Oki</div>
+    <div class="section-title">💗 オキニ</div>
     ${list.map(c => `
       <div class="creator-card" onclick="openProfile('${c.id}')">
         ${avatarHtml(c,52)}
         <div class="creator-info">
           <div class="name">${c.name}</div>
           <div class="genre">${c.genre}</div>
-          <span class="phase-badge">${c.phase}</span>
+          <span class="phase-badge">${c.phase}</span>${c.is_live ? '<span class="live-badge">🔴 配信中</span>' : ''}
         </div>
       </div>
     `).join('')}
@@ -1020,19 +1034,27 @@ function viewMyPage(){
   }
   const myIds = getMyCreatorIds();
   const myCreators = creators.filter(c => myIds.includes(c.id));
+  const okiniCount = state.saved.size;
   return `
     <div class="section-label">My Page</div>
     <div class="section-title">👤 マイページ</div>
+    <div class="mypage-card" style="cursor:pointer;" onclick="goTab('saved')">
+      <div class="mypage-card-title">💗 オキニを見る</div>
+      <div class="mypage-card-desc" style="margin-bottom:0;">気になる活動者、${okiniCount}人登録中</div>
+    </div>
     ${myCreators.length ? `
       <div class="mypage-card">
         <div class="mypage-card-title">📝 自分が登録した活動者</div>
         ${myCreators.map(c => `
           <div class="my-creator-row">
             <div>
-              <div style="font-weight:700;">${c.name}</div>
+              <div style="font-weight:700;">${c.name} ${c.is_live ? '<span class="live-badge">🔴 配信中</span>' : ''}</div>
               <div class="mypage-card-desc" style="margin-top:2px;">${c.genre}・${c.phase}</div>
             </div>
-            <button class="edit-btn" onclick="startEdit('${c.id}')">編集する</button>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+              <button class="edit-btn" onclick="toggleLive('${c.id}')">${c.is_live ? '配信終了にする' : '🔴 配信中にする'}</button>
+              <button class="edit-btn" onclick="startEdit('${c.id}')">編集する</button>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -1047,6 +1069,22 @@ function viewMyPage(){
       <div class="mypage-card-desc mono" style="font-size:20px; color:var(--coral); margin-top:6px;">${state.cpTotal} 回</div>
     </div>
   `;
+}
+window.toggleLive = async function(id){
+  const c = creators.find(c => c.id === id);
+  if (!c) return;
+  const next = !c.is_live;
+  if (sbClient){
+    const { error } = await sbClient.from('creators').update({ is_live: next }).eq('id', id);
+    if (error){
+      console.error('[ハツミル] is_live update error', error);
+      toast('通信エラーが発生しました');
+      return;
+    }
+  }
+  c.is_live = next;
+  toast(next ? '🔴 配信中にしました' : '配信終了にしました');
+  render();
 }
 window.startEdit = function(id){
   const c = creators.find(c => c.id === id);
@@ -1299,7 +1337,7 @@ window.openProfile = function(id){
       <span>✨ この人に会いに行く</span>
       <span class="go-sub">▶ 配信を見る</span>
     </button>
-    <button class="save-btn" onclick="toggleSave('${c.id}')">${isSaved ? '✓ 保存済み（タップで解除）' : '🔖 あとで見るに保存'}</button>
+    <button class="save-btn" onclick="toggleSave('${c.id}')">${isSaved ? '💗 オキニ中（タップで解除）' : '🤍 オキニにする'}</button>
   `;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1316,7 +1354,8 @@ window.goToStream = function(name, url){
   }
 }
 window.toggleSave = function(id){
-  if (state.saved.has(id)) { state.saved.delete(id); } else { state.saved.add(id); toast('🔖 あとで見るに保存しました'); }
+  if (state.saved.has(id)) { state.saved.delete(id); } else { state.saved.add(id); toast('💗 オキニに追加しました'); }
+  saveOshiIds(state.saved);
   openProfile(id); // 再描画
 }
 

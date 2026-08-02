@@ -368,6 +368,19 @@
   }
   .info-label{ display:block; font-size:10px; color:var(--muted); margin-bottom:2px; }
   .info-value{ display:block; font-size:13px; font-weight:700; }
+  .intro30-wrap{ cursor:pointer; margin: 6px 0 4px; }
+  .intro30-poster{
+    width:100%; aspect-ratio: 16/9; border-radius:16px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--border); transition: box-shadow .2s;
+  }
+  .intro30-poster.playing{ box-shadow: 0 0 0 3px var(--aqua-dim); }
+  .intro30-play{
+    width:56px; height:56px; border-radius:50%; border:none;
+    background:rgba(11,15,26,0.55); color:#fff; font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .intro30-note{ font-size:11px; color:var(--muted); margin-top:6px; text-align:center; }
 
   .radar-wrap{
     display:flex; justify-content:center; margin: 14px 0 6px;
@@ -1666,7 +1679,16 @@ window.openProfile = function(id, skipHistory){
       <div class="info-item"><span class="info-label">活動状況</span><span class="info-value">${c.phase}</span></div>
     </div>
 
-    <div class="section-label" style="margin-top:20px;">My Points</div>
+<div class="section-label" style="margin-top:20px;">Intro</div>
+    <div class="section-title">🎬 30秒でこの人を知る</div>
+    <div class="intro30-wrap" onclick="playIntro30(this)">
+      <div class="intro30-poster" style="background:linear-gradient(135deg, hsl(${hueFromName(c.name)},70%,68%), hsl(${(hueFromName(c.name)+70)%360},70%,62%));">
+        <button class="intro30-play" aria-label="30秒紹介を再生" type="button">▶</button>
+      </div>
+      <p class="intro30-note">タップして再生（自動再生はしません）</p>
+    </div>
+
+        <div class="section-label" style="margin-top:20px;">My Points</div>
     <div class="section-title">✦ 私の推しポイント</div>
     <p class="section-sub" style="margin:-6px 0 10px;">共通チャートとは別に、本人が自由に選んだこだわりポイントです（相性診断には使用していません）。</p>
     <div class="radar-wrap">${renderRadar(c.radar)}</div>
@@ -1699,6 +1721,18 @@ window.openProfile = function(id, skipHistory){
   if (!skipHistory){
     history.pushState({ profileId: id }, '', '#profile/' + id);
   }
+}
+window.playIntro30 = function(el){
+  const poster = el.querySelector('.intro30-poster');
+  if (poster.classList.contains('playing')) return;
+  poster.classList.add('playing');
+  const btn = poster.querySelector('.intro30-play');
+  if (btn) btn.textContent = '॥';
+  toast('🎬 30秒紹介を再生しました（MVPではダミー表示です）');
+  setTimeout(()=>{
+    poster.classList.remove('playing');
+    if (btn) btn.textContent = '▶';
+  }, 3000);
 }
 window.closeProfile = function(){
   document.getElementById('modalOverlay').classList.remove('open');

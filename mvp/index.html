@@ -1341,12 +1341,14 @@ function viewSaved(){
     return `
       <div class="section-label">My Oki</div>
       <div class="section-title">💗 オキニ</div>
+      <p class="section-sub" style="margin:-6px 0 14px;">気になる活動者を保存しておける機能です。カードの🤍をタップすると追加できます。</p>
       <div class="empty-note">気になった活動者を「オキニにする」と、ここに表示されます。</div>
     `;
   }
   return `
     <div class="section-label">My Oki</div>
     <div class="section-title">💗 オキニ</div>
+    <p class="section-sub" style="margin:-6px 0 14px;">気になる活動者を保存しておける機能です。</p>
     ${list.map(c => `
 <div class="creator-card" onclick="openProfile('${c.id}')">
         ${cardImageHtml(c)}
@@ -1391,6 +1393,7 @@ function viewMyPage(){
             </div>
           </div>
         `).join('')}
+        <p class="section-sub" style="margin:10px 0 0;">⚠️ 現在は試作版のため、本人確認機能は未実装です。この端末で登録した人であれば誰でも配信中の切り替えができます。</p>
       </div>
     ` : ''}
     <div class="mypage-card">

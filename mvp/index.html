@@ -1618,8 +1618,9 @@ function platformLabel(c){
   if (url) return 'その他';
   return '未設定';
 }
-window.openProfile = function(id){
+window.openProfile = function(id, skipHistory){
   const c = creators.find(x=>x.id===id);
+  if (!c) return;
   const overlay = document.getElementById('modalOverlay');
   const modal = document.getElementById('modalContent');
   const isSaved = state.saved.has(id);
@@ -1695,11 +1696,27 @@ window.openProfile = function(id){
   `;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+  if (!skipHistory){
+    history.pushState({ profileId: id }, '', '#profile/' + id);
+  }
 }
 window.closeProfile = function(){
   document.getElementById('modalOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  if (location.hash.startsWith('#profile/')){
+    history.pushState({}, '', location.pathname + location.search);
+  }
 }
+window.addEventListener('popstate', function(){
+  const hash = location.hash;
+  if (hash.startsWith('#profile/')){
+    const id = hash.slice('#profile/'.length);
+    if (creators.find(c=>c.id===id)) openProfile(id, true);
+  } else {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
 window.goToStream = function(name, url){
   if (url){
     window.open(url, '_blank', 'noopener');
@@ -1736,8 +1753,16 @@ function render(){
   else if (state.tab === 'mypage') main.innerHTML = viewMyPage();
 }
 
+function checkInitialHash(){
+  const hash = location.hash;
+  if (hash.startsWith('#profile/')){
+    const id = hash.slice('#profile/'.length);
+    if (creators.find(c=>c.id===id)) openProfile(id, true);
+  }
+}
+
 render();
-loadData();
+loadData().then(checkInitialHash);
 </script>
 </body>
 </html>

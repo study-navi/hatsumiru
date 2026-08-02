@@ -1191,32 +1191,28 @@ function viewDiagnosisResult(){
   const rest = scored.slice(3,6);
   const summary = anyPref ? buildPreferenceSummary() : [];
 
-  return `
-    <div class="section-label">Diagnosis Result</div>
-    <div class="section-title">✨ あなたに合う活動者</div>
+  let prefBlock = "";
+  if (!anyPref){
+    prefBlock = '<p class="section-sub" style="margin:-6px 0 16px;">条件が指定されていないため、幅広い活動者を表示しています。</p>';
+  } else if (summary.length){
+    prefBlock = '<div class="pref-summary"><div class="pref-summary-title">あなたはこんな配信が好きそうです</div><ul>'
+      + summary.map(function(s){ return "<li>" + s + "</li>"; }).join("")
+      + '</ul></div>';
+  }
 
-    ${!anyPref ? `
-      <p class="section-sub" style="margin:-6px 0 16px;">条件が指定されていないため、幅広い活動者を表示しています。</p>
-    ` : summary.length ? `
-      <div class="pref-summary">
-        <div class="pref-summary-title">あなたはこんな配信が好きそうです</div>
-        <ul>${summary.map(s=>`<li>${s}</li>`).join('')}</ul>
-      </div>
-    ` : ''}
+  let restBlock = "";
+  if (rest.length){
+    restBlock = '<button class="hero-btn-secondary" id="moreCandidatesBtn" onclick="toggleMoreCandidates()" style="width:100%; margin-bottom:14px;">ほかの候補を見る</button><div id="moreCandidatesWrap" style="display:none;">'
+      + rest.map(function(o){ return renderResultCard(o.c, o.score, null); }).join("")
+      + '</div>';
+  }
 
-    ${top3.length === 0 ? '<div class="empty-note">診断できる活動者がまだいません。</div>' : ''}
+  const emptyBlock = top3.length === 0 ? '<div class="empty-note">診断できる活動者がまだいません。</div>' : "";
+  const top3Html = top3.map(function(o, i){ return renderResultCard(o.c, o.score, i); }).join("");
 
-    ${top3.map(({c, score}, i) => renderResultCard(c, score, i)).join('')}
-
-    ${rest.length ? `
-      <button class="hero-btn-secondary" id="moreCandidatesBtn" onclick="toggleMoreCandidates()" style="width:100%; margin-bottom:14px;">ほかの候補を見る</button>
-      <div id="moreCandidatesWrap" style="display:none;">
-        ${rest.map(({c, score}) => renderResultCard(c, score, null)).join('')}
-      </div>
-    ` : ''}
-
-    <button class="hero-btn-secondary" style="margin-top:6px;" onclick="startDiagnosis()">もう一度診断する</button>`;
-  `;
+  return '<div class="section-label">Diagnosis Result</div><div class="section-title">✨ あなたに合う活動者</div>'
+    + prefBlock + emptyBlock + top3Html + restBlock
+    + '<button class="hero-btn-secondary" style="margin-top:6px;" onclick="startDiagnosis()">もう一度診断する</button>';
 }
 
 window.toggleMoreCandidates = function(){
